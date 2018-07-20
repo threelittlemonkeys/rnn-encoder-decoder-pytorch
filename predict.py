@@ -1,0 +1,72 @@
+import sys
+import re
+from model import *
+from utils import *
+
+def load_model():
+    vocab_src = load_vocab(sys.argv[2], "src")
+    vocab_tgt = load_vocab(sys.argv[3], "tgt")
+    vocab_tgt = [word for word, _ in sorted(vocab_tgt.items(), key = lambda x: x[1])]
+    enc = encoder(len(vocab_src))
+    dec = decoder(len(vocab_tgt))
+    enc.eval()
+    dec.eval()
+    print(enc)
+    print(dec)
+    load_checkpoint(sys.argv[1], enc, dec)
+    return enc, dec, vocab_src, vocab_tgt
+
+def run_model(enc, dec, vocab_tgt, data):
+    batch = []
+    z = len(data)
+    eos = [0 for _ in range(z)] # number of EOS tokens in the batch
+    while len(data) < BATCH_SIZE:
+        data.append(["", [EOS_IDX], []])
+    data.sort(key = lambda x: len(x[1]), reverse = True)
+    batch_len = len(data[0][1])
+    batch = LongTensor([x[1] + [PAD_IDX] * (batch_len - len(x[1])) for x in data])
+    mask = maskset(batch)
+    enc_out = enc(batch, mask)
+    dec_in = LongTensor([SOS_IDX] * BATCH_SIZE).unsqueeze(1)
+    dec.hidden = enc.hidden
+    if dec.feed_input:
+        dec.attn.hidden = zeros(BATCH_SIZE, 1, HIDDEN_SIZE)
+    t = 0
+    while sum(eos) < z:
+        dec_out = dec(dec_in, enc_out, t, mask)
+        dec_in = dec_out.data.topk(1)[1]
+        y = dec_in.view(-1).data.tolist()
+        for i in range(z):
+            if eos[i]:
+                continue
+            data[i][2].append(vocab_tgt[y[i]])
+            if y[i] == EOS_IDX:
+                eos[i] = 1
+        t += 1
+    return data[:z]
+
+def predict():
+    data = []
+    enc, dec, vocab_src, vocab_tgt = load_model()
+    fo = open(sys.argv[4])
+    for line in fo:
+        line = line.strip()
+        tokens = tokenize(line, "word")
+        x = [vocab_src[i] for i in tokens] + [EOS_IDX]
+        data.append([line, x, []])
+        if len(data) == BATCH_SIZE:
+            result = run_model(enc, dec, vocab_tgt, data)
+            for x in result:
+                print(x)
+            data = []
+    fo.close()
+    if len(data):
+        result = run_model(enc, dec, vocab_tgt, data)
+        for x in result:
+            print(x)
+
+if __name__ == "__main__":
+    if len(sys.argv) != 5:
+        sys.exit("Usage: %s model vocab.src vocab.tgt test_data" % sys.argv[0])
+    print("cuda: %s" % CUDA)
+    predict()
