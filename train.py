@@ -80,7 +80,7 @@ def train():
                 if VERBOSE:
                     for i, j in enumerate(dec_out.data.topk(1)[1]):
                         pred[i].append(scalar(j))
-            loss /= y.data.gt(0).sum() # divide by the number of unpadded tokens
+            loss /= y.data.gt(0).sum().float() # divide by the number of unpadded tokens
             loss.backward()
             enc_optim.step()
             dec_optim.step()
