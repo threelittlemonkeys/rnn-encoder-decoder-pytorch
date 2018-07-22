@@ -79,7 +79,7 @@ class decoder(nn.Module):
         )
         self.attn = attn()
         self.out = nn.Linear(HIDDEN_SIZE, vocab_size)
-        self.softmax = nn.LogSoftmax(-1)
+        self.softmax = nn.LogSoftmax(1)
 
         if CUDA:
             self = self.cuda()
@@ -91,8 +91,8 @@ class decoder(nn.Module):
         h, _ = self.rnn(dec_in, self.hidden)
         if self.attn:
             h = self.attn(h, enc_out, t, mask)
-        y = self.out(h).squeeze(1)
-        y = self.softmax(y)
+        h = self.out(h).squeeze(1)
+        y = self.softmax(h)
         return y
 
 class attn(nn.Module): # attention layer (Luong et al 2015)
