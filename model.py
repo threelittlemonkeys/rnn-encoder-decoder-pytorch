@@ -137,7 +137,7 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
                 sd = (p1 - p0) / 2 # standard deviation
                 v = [torch.exp(-(j - pt[i]).pow(2) / (2 * sd ** 2)) for j in range(p0, p1)]
                 k.append(torch.cat(v))
-            hs_w = torch.cat(hs_w).view(BATCH_SIZE, -1, 1000)
+            hs_w = torch.cat(hs_w).view(BATCH_SIZE, -1, HIDDEN_SIZE)
             mask_w = torch.cat(mask_w).view(BATCH_SIZE, -1)
             k = torch.cat(k).view(BATCH_SIZE, 1, -1)
             return hs_w, mask_w, pt, k
@@ -149,8 +149,8 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
             a = ht.bmm(self.Wa(hs).transpose(1, 2))
         elif self.method == "concat":
             pass # TODO
-        a.masked_fill_(1 - mask.unsqueeze(1), -10000) # masking in log space
-        a = F.softmax(a, dim = -1)
+        a = a.masked_fill(1 - mask.unsqueeze(1), -10000) # masking in log space
+        a = F.softmax(a, 2)
         if self.type == "local-p":
             a = a * k
         return a # alignment weights
