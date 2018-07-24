@@ -83,7 +83,7 @@ class decoder(nn.Module):
         if CUDA:
             self = self.cuda()
 
-    def forward(self, dec_in, enc_out = None, t = None, mask = None):
+    def forward(self, dec_in, enc_out, t, mask):
         dec_in = self.embed(dec_in)
         if self.feed_input:
             dec_in = torch.cat((dec_in, self.attn.hidden), 2)
