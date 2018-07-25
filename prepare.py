@@ -7,31 +7,31 @@ MAX_LENGTH = 50
 
 def load_data():
     data = []
-    vocab_src = {PAD: PAD_IDX, EOS: EOS_IDX, SOS: SOS_IDX}
-    vocab_tgt = {PAD: PAD_IDX, EOS: EOS_IDX, SOS: SOS_IDX}
+    src_vocab = {PAD: PAD_IDX, EOS: EOS_IDX, SOS: SOS_IDX}
+    tgt_vocab = {PAD: PAD_IDX, EOS: EOS_IDX, SOS: SOS_IDX}
     fo = open(sys.argv[1])
     for line in fo:
         src, tgt = line.split("\t")
-        tokens_src = tokenize(src, "word")
-        tokens_tgt = tokenize(tgt, "word")
-        if len(tokens_src) < MIN_LENGTH or len(tokens_src) > MAX_LENGTH:
+        src_tokens = tokenize(src, "word")
+        tgt_tokens = tokenize(tgt, "word")
+        if len(src_tokens) < MIN_LENGTH or len(src_tokens) > MAX_LENGTH:
             continue
-        if len(tokens_tgt) < MIN_LENGTH or len(tokens_tgt) > MAX_LENGTH:
+        if len(tgt_tokens) < MIN_LENGTH or len(tgt_tokens) > MAX_LENGTH:
             continue
-        seq_src = []
-        seq_tgt = []
-        for word in tokens_src:
-            if word not in vocab_src:
-                vocab_src[word] = len(vocab_src)
-            seq_src.append(str(vocab_src[word]))
-        for word in tokens_tgt:
-            if word not in vocab_tgt:
-                vocab_tgt[word] = len(vocab_tgt)
-            seq_tgt.append(str(vocab_tgt[word]))
-        data.append((seq_src, seq_tgt))
+        src_seq = []
+        tgt_seq = []
+        for word in src_tokens:
+            if word not in src_vocab:
+                src_vocab[word] = len(src_vocab)
+            src_seq.append(str(src_vocab[word]))
+        for word in tgt_tokens:
+            if word not in tgt_vocab:
+                tgt_vocab[word] = len(tgt_vocab)
+            tgt_seq.append(str(tgt_vocab[word]))
+        data.append((src_seq, tgt_seq))
     data.sort(key = lambda x: len(x[0]), reverse = True) # sort by source sequence length
     fo.close()
-    return data, vocab_src, vocab_tgt
+    return data, src_vocab, tgt_vocab
 
 def save_data(data):
     fo = open(sys.argv[1] + ".csv", "w")
@@ -48,7 +48,7 @@ def save_vocab(vocab, ext):
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         sys.exit("Usage: %s training_data" % sys.argv[0])
-    data, vocab_src, vocab_tgt= load_data()
+    data, src_vocab, tgt_vocab= load_data()
     save_data(data)
-    save_vocab(vocab_src, "src")
-    save_vocab(vocab_tgt, "tgt")
+    save_vocab(src_vocab, "src")
+    save_vocab(tgt_vocab, "tgt")

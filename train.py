@@ -7,13 +7,13 @@ from os.path import isfile
 
 def load_data():
     data = []
-    batch_src = []
-    batch_tgt = []
-    batch_len_src = 0
-    batch_len_tgt = 0
+    src_batch = []
+    tgt_batch = []
+    src_batch_len = 0
+    tgt_batch_len = 0
     print("loading data...")
-    vocab_src = load_vocab(sys.argv[2], "src")
-    vocab_tgt = load_vocab(sys.argv[3], "tgt")
+    src_vocab = load_vocab(sys.argv[2], "src")
+    tgt_vocab = load_vocab(sys.argv[3], "tgt")
     fo = open(sys.argv[4], "r")
     for line in fo:
         line = line.strip()
@@ -21,36 +21,36 @@ def load_data():
         src = [int(i) for i in src.split(" ")] + [EOS_IDX]
         tgt = [int(i) for i in tgt.split(" ")] + [EOS_IDX]
         # src.reverse() # reversing source sequence
-        if len(src) > batch_len_src:
-            batch_len_src = len(src)
-        if len(tgt) > batch_len_tgt:
-            batch_len_tgt = len(tgt)
-        batch_src.append(src)
-        batch_tgt.append(tgt)
-        if len(batch_src) == BATCH_SIZE:
-            for seq in batch_src:
-                seq.extend([PAD_IDX] * (batch_len_src - len(seq)))
-            for seq in batch_tgt:
-                seq.extend([PAD_IDX] * (batch_len_tgt - len(seq)))
-            data.append((LongTensor(batch_src), LongTensor(batch_tgt)))
-            batch_src = []
-            batch_tgt = []
-            batch_len_src = 0
-            batch_len_tgt = 0
+        if len(src) > src_batch_len:
+            src_batch_len = len(src)
+        if len(tgt) > tgt_batch_len:
+            tgt_batch_len = len(tgt)
+        src_batch.append(src)
+        tgt_batch.append(tgt)
+        if len(src_batch) == BATCH_SIZE:
+            for seq in src_batch:
+                seq.extend([PAD_IDX] * (src_batch_len - len(seq)))
+            for seq in tgt_batch:
+                seq.extend([PAD_IDX] * (tgt_batch_len - len(seq)))
+            data.append((LongTensor(src_batch), LongTensor(tgt_batch)))
+            src_batch = []
+            tgt_batch = []
+            src_batch_len = 0
+            tgt_batch_len = 0
     fo.close()
     print("data size: %d" % (len(data) * BATCH_SIZE))
     print("batch size: %d" % BATCH_SIZE)
-    return data, vocab_src, vocab_tgt
+    return data, src_vocab, tgt_vocab
 
 def train():
     print("cuda: %s" % CUDA)
     num_epochs = int(sys.argv[5])
-    data, vocab_src, vocab_tgt = load_data()
+    data, src_vocab, tgt_vocab = load_data()
     if VERBOSE:
-        itow_src = [w for w, _ in sorted(vocab_src.items(), key = lambda x: x[1])]
-        itow_tgt = [w for w, _ in sorted(vocab_tgt.items(), key = lambda x: x[1])]
-    enc = encoder(len(vocab_src))
-    dec = decoder(len(vocab_tgt))
+        src_itow = [w for w, _ in sorted(src_vocab.items(), key = lambda x: x[1])]
+        tgt_itow = [w for w, _ in sorted(tgt_vocab.items(), key = lambda x: x[1])]
+    enc = encoder(len(src_vocab))
+    dec = decoder(len(tgt_vocab))
     enc_optim = torch.optim.SGD(enc.parameters(), lr = LEARNING_RATE, weight_decay = WEIGHT_DECAY)
     dec_optim = torch.optim.SGD(dec.parameters(), lr = LEARNING_RATE, weight_decay = WEIGHT_DECAY)
     epoch = load_checkpoint(sys.argv[1], enc, dec) if isfile(sys.argv[1]) else 0
@@ -93,8 +93,8 @@ def train():
         else:
             if VERBOSE:
                 for x, y in zip(x, pred):
-                    print(" ".join([itow_src[scalar(i)] for i in x if scalar(i) != PAD_IDX]))
-                    print(" ".join([itow_tgt[i] for i in y if i != PAD_IDX]))
+                    print(" ".join([src_itow[scalar(i)] for i in x if scalar(i) != PAD_IDX]))
+                    print(" ".join([tgt_itow[i] for i in y if i != PAD_IDX]))
             save_checkpoint(filename, enc, dec, ei, loss_sum, timer)
 
 if __name__ == "__main__":

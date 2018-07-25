@@ -4,19 +4,19 @@ from model import *
 from utils import *
 
 def load_model():
-    vocab_src = load_vocab(sys.argv[2], "src")
-    vocab_tgt = load_vocab(sys.argv[3], "tgt")
-    vocab_tgt = [word for word, _ in sorted(vocab_tgt.items(), key = lambda x: x[1])]
-    enc = encoder(len(vocab_src))
-    dec = decoder(len(vocab_tgt))
+    src_vocab = load_vocab(sys.argv[2], "src")
+    tgt_vocab = load_vocab(sys.argv[3], "tgt")
+    tgt_vocab = [word for word, _ in sorted(tgt_vocab.items(), key = lambda x: x[1])]
+    enc = encoder(len(src_vocab))
+    dec = decoder(len(tgt_vocab))
     enc.eval()
     dec.eval()
     print(enc)
     print(dec)
     load_checkpoint(sys.argv[1], enc, dec)
-    return enc, dec, vocab_src, vocab_tgt
+    return enc, dec, src_vocab, tgt_vocab
 
-def run_model(enc, dec, vocab_tgt, data):
+def run_model(enc, dec, tgt_vocab, data):
     batch = []
     z = len(data)
     eos = [0 for _ in range(z)] # number of EOS tokens in the batch
@@ -39,7 +39,7 @@ def run_model(enc, dec, vocab_tgt, data):
         for i in range(z):
             if eos[i]:
                 continue
-            data[i][2].append(vocab_tgt[y[i]])
+            data[i][2].append(tgt_vocab[y[i]])
             if y[i] == EOS_IDX:
                 eos[i] = 1
         t += 1
@@ -47,21 +47,21 @@ def run_model(enc, dec, vocab_tgt, data):
 
 def predict():
     data = []
-    enc, dec, vocab_src, vocab_tgt = load_model()
+    enc, dec, src_vocab, tgt_vocab = load_model()
     fo = open(sys.argv[4])
     for line in fo:
         line = line.strip()
         tokens = tokenize(line, "word")
-        x = [vocab_src[i] for i in tokens] + [EOS_IDX]
+        x = [src_vocab[i] for i in tokens] + [EOS_IDX]
         data.append([line, x, []])
         if len(data) == BATCH_SIZE:
-            result = run_model(enc, dec, vocab_tgt, data)
+            result = run_model(enc, dec, tgt_vocab, data)
             for x in result:
                 print(x)
             data = []
     fo.close()
     if len(data):
-        result = run_model(enc, dec, vocab_tgt, data)
+        result = run_model(enc, dec, tgt_vocab, data)
         for x in result:
             print(x)
 
