@@ -2,8 +2,8 @@ import sys
 from model import SOS, EOS, PAD, SOS_IDX, EOS_IDX, PAD_IDX
 from utils import tokenize
 
-MIN_LENGTH = 3
-MAX_LENGTH = 50
+MIN_LEN = 3
+MAX_LEN = 50
 
 def load_data():
     data = []
@@ -14,9 +14,9 @@ def load_data():
         src, tgt = line.split("\t")
         src_tokens = tokenize(src, "word")
         tgt_tokens = tokenize(tgt, "word")
-        if len(src_tokens) < MIN_LENGTH or len(src_tokens) > MAX_LENGTH:
+        if len(src_tokens) < MIN_LEN or len(src_tokens) > MAX_LEN:
             continue
-        if len(tgt_tokens) < MIN_LENGTH or len(tgt_tokens) > MAX_LENGTH:
+        if len(tgt_tokens) < MIN_LEN or len(tgt_tokens) > MAX_LEN:
             continue
         src_seq = []
         tgt_seq = []
