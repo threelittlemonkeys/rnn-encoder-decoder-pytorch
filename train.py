@@ -63,9 +63,9 @@ def train():
         timer = time.time()
         for x, y in data:
             loss = 0
-            mask = maskset(x)
             enc.zero_grad()
             dec.zero_grad()
+            mask = maskset(x)
             if VERBOSE:
                 pred = [[] for _ in range(BATCH_SIZE)]
             enc_out = enc(x, mask)
