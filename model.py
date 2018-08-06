@@ -109,6 +109,8 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
                 self.Vp = nn.Linear(HIDDEN_SIZE, 1)
         if self.method == "general":
             self.Wa = nn.Linear(HIDDEN_SIZE, HIDDEN_SIZE)
+        elif self.method  == "concat":
+            pass # TODO
         self.Wc = nn.Linear(HIDDEN_SIZE * 2, HIDDEN_SIZE)
 
     def window(self, ht, hs, t, mask): # for local attention
