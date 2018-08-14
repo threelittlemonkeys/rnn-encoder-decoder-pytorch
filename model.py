@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 BATCH_SIZE = 128
-EMBED_SIZE = 500
+EMBED_SIZE = 300
 HIDDEN_SIZE = 1000
 NUM_LAYERS = 2
 DROPOUT = 0.5
