@@ -92,7 +92,7 @@ def train():
         timer = time.time() - timer
         loss_sum /= len(data)
         if ei % SAVE_EVERY and ei != epoch + num_epochs:
-            save_checkpoint("", "", "", ei, loss_sum, timer)
+            save_checkpoint("", None, None, ei, loss_sum, timer)
         else:
             if VERBOSE:
                 for x, y in zip(x, pred):
