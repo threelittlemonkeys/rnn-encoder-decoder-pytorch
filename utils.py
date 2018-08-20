@@ -26,7 +26,7 @@ def load_vocab(filename, ext):
     fo.close()
     return vocab
 
-def load_checkpoint(filename, enc = None, dec = None, g2c = False):
+def load_checkpoint(filename, enc = None, dec = None):
     print("loading model...")
     checkpoint = torch.load(filename)
     enc.load_state_dict(checkpoint["encoder_state_dict"])
