@@ -28,13 +28,9 @@ def load_vocab(filename, ext):
 
 def load_checkpoint(filename, enc = None, dec = None, g2c = False):
     print("loading model...")
-    if g2c: # load weights into CPU
-        checkpoint = torch.load(filename, map_location = lambda storage, loc: storage)
-    else:
-        checkpoint = torch.load(filename)
-    if enc and dec:
-        enc.load_state_dict(checkpoint["encoder_state_dict"])
-        dec.load_state_dict(checkpoint["decoder_state_dict"])
+    checkpoint = torch.load(filename)
+    enc.load_state_dict(checkpoint["encoder_state_dict"])
+    dec.load_state_dict(checkpoint["decoder_state_dict"])
     epoch = checkpoint["epoch"]
     loss = checkpoint["loss"]
     print("saved model: epoch = %d, loss = %f" % (checkpoint["epoch"], checkpoint["loss"]))
