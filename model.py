@@ -151,7 +151,7 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
         elif self.method == "concat":
             pass # TODO
         a = a.masked_fill(mask.unsqueeze(1), -10000) # masking in log space
-        a = F.softmax(a, 2)
+        a = F.softmax(a, 2) # [B, 1, H] @ [B, H, L] = [B, 1, L]
         if self.type == "local-p":
             a = a * k
         return a # alignment weights
