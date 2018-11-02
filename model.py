@@ -56,9 +56,9 @@ class encoder(nn.Module):
         self.hidden = self.init_hidden("GRU") # LSTM or GRU
         x = self.embed(x)
         x = nn.utils.rnn.pack_padded_sequence(x, mask[1], batch_first = True)
-        y, _ = self.rnn(x, self.hidden)
-        y, _ = nn.utils.rnn.pad_packed_sequence(y, batch_first = True)
-        return y
+        h, _ = self.rnn(x, self.hidden)
+        h, _ = nn.utils.rnn.pad_packed_sequence(h, batch_first = True)
+        return h
 
 class decoder(nn.Module):
     def __init__(self, vocab_size):
