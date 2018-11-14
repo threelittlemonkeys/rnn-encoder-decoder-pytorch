@@ -6,7 +6,7 @@ from utils import *
 def load_model():
     src_vocab = load_vocab(sys.argv[2], "src")
     tgt_vocab = load_vocab(sys.argv[3], "tgt")
-    tgt_vocab = [word for word, _ in sorted(tgt_vocab.items(), key = lambda x: x[1])]
+    tgt_vocab = [x for x, _ in sorted(tgt_vocab.items(), key = lambda x: x[1])]
     enc = encoder(len(src_vocab))
     dec = decoder(len(tgt_vocab))
     enc.eval()
