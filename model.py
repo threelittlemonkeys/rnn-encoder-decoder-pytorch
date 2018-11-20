@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-BATCH_SIZE = 256
+BATCH_SIZE = 64
 EMBED_SIZE = 300
 HIDDEN_SIZE = 1000
 NUM_LAYERS = 2
