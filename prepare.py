@@ -1,14 +1,13 @@
 import sys
-from model import SOS, EOS, PAD, SOS_IDX, EOS_IDX, PAD_IDX
-from utils import tokenize
+from utils import *
 
 MIN_LEN = 3
 MAX_LEN = 50
 
 def load_data():
     data = []
-    src_vocab = {PAD: PAD_IDX, EOS: EOS_IDX, SOS: SOS_IDX}
-    tgt_vocab = {PAD: PAD_IDX, EOS: EOS_IDX, SOS: SOS_IDX}
+    src_vocab = {PAD: PAD_IDX, EOS: EOS_IDX, SOS: SOS_IDX, UNK: UNK_IDX}
+    tgt_vocab = {PAD: PAD_IDX, EOS: EOS_IDX, SOS: SOS_IDX, UNK: UNK_IDX}
     fo = open(sys.argv[1])
     for line in fo:
         src, tgt = line.split("\t")

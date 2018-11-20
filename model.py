@@ -18,6 +18,7 @@ SAVE_EVERY = 1
 PAD = "<PAD>" # padding
 EOS = "<EOS>" # end of sequence
 SOS = "<SOS>" # start of sequence
+UNK = "<UNK>" # unknown token
 
 PAD_IDX = 0
 EOS_IDX = 1
