@@ -88,7 +88,7 @@ def train():
             dec_optim.step()
             loss = scalar(loss)
             loss_sum += loss
-            print("epoch = %d, iteration = %d, loss = %f" % (ei, ii, loss))
+            # print("epoch = %d, iteration = %d, loss = %f" % (ei, ii, loss))
         timer = time.time() - timer
         loss_sum /= len(data)
         if ei % SAVE_EVERY and ei != epoch + num_epochs:
