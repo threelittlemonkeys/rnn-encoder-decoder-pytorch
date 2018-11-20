@@ -1,13 +1,13 @@
 import sys
 from utils import *
 
-MIN_LEN = 3
+MIN_LEN = 1
 MAX_LEN = 50
 
 def load_data():
     data = []
-    src_vocab = {PAD: PAD_IDX, EOS: EOS_IDX, SOS: SOS_IDX, UNK: UNK_IDX}
-    tgt_vocab = {PAD: PAD_IDX, EOS: EOS_IDX, SOS: SOS_IDX, UNK: UNK_IDX}
+    src_vocab = {PAD: PAD_IDX, SOS: SOS_IDX, EOS: EOS_IDX, UNK: UNK_IDX}
+    tgt_vocab = {PAD: PAD_IDX, SOS: SOS_IDX, EOS: EOS_IDX, UNK: UNK_IDX}
     fo = open(sys.argv[1])
     for line in fo:
         src, tgt = line.split("\t")
