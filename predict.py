@@ -39,11 +39,12 @@ def run_model(enc, dec, tgt_vocab, data):
         for i in range(z):
             if eos[i]:
                 continue
-            data[i][2].append(tgt_vocab[y[i]])
             if y[i] == EOS_IDX:
                 eos[i] = 1
+            else:
+                data[i][2].append(tgt_vocab[y[i]])
         t += 1
-    return data[:z]
+    return [(x[0], x[2]) for x in data[:z]]
 
 def predict():
     data = []
@@ -52,7 +53,7 @@ def predict():
     for line in fo:
         line = line.strip()
         x = tokenize(line, "word")
-        x = [src_vocab[i] for i in x] + [EOS_IDX]
+        x = [src_vocab[i] if i in src_vocab else UNK_IDX for i in x] + [EOS_IDX]
         data.append([line, x, []])
         if len(data) == BATCH_SIZE:
             result = run_model(enc, dec, tgt_vocab, data)
