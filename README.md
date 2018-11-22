@@ -7,6 +7,7 @@ Supported features:
 - Global and local attention (Luong et al 2015)
 - Input feeding (Luong et al 2015)
 - Vectorized computation of alignment scores in the attention layer
+- CopyNet (Gu et al 2016)
 
 ## Usage
 
