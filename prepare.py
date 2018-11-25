@@ -11,22 +11,22 @@ def load_data():
     fo = open(sys.argv[1])
     for line in fo:
         src, tgt = line.split("\t")
-        src_tokens = tokenize(src, "word")
-        tgt_tokens = tokenize(tgt, "word")
+        src_tokens = tokenize(src, UNIT)
+        tgt_tokens = tokenize(tgt, UNIT)
         if len(src_tokens) < MIN_LEN or len(src_tokens) > MAX_LEN:
             continue
         if len(tgt_tokens) < MIN_LEN or len(tgt_tokens) > MAX_LEN:
             continue
         src_seq = []
         tgt_seq = []
-        for word in src_tokens:
-            if word not in src_vocab:
-                src_vocab[word] = len(src_vocab)
-            src_seq.append(str(src_vocab[word]))
-        for word in tgt_tokens:
-            if word not in tgt_vocab:
-                tgt_vocab[word] = len(tgt_vocab)
-            tgt_seq.append(str(tgt_vocab[word]))
+        for w in src_tokens:
+            if w not in src_vocab:
+                src_vocab[w] = len(src_vocab)
+            src_seq.append(str(src_vocab[w]))
+        for w in tgt_tokens:
+            if w not in tgt_vocab:
+                tgt_vocab[w] = len(tgt_vocab)
+            tgt_seq.append(str(tgt_vocab[w]))
         data.append((src_seq, tgt_seq))
     data.sort(key = lambda x: len(x[0]), reverse = True) # sort by source sequence length
     fo.close()
@@ -40,8 +40,8 @@ def save_data(data):
 
 def save_vocab(vocab, ext):
     fo = open(sys.argv[1] + ".vocab." + ext, "w")
-    for word, _ in sorted(vocab.items(), key = lambda x: x[1]):
-        fo.write("%s\n" % word)
+    for w, _ in sorted(vocab.items(), key = lambda x: x[1]):
+        fo.write("%s\n" % w)
     fo.close()
 
 if __name__ == "__main__":

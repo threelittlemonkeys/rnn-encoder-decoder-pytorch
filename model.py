@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
+UNIT = "word" # unit for tokenization (char, word)
 BATCH_SIZE = 64
 EMBED_SIZE = 300
 HIDDEN_SIZE = 1000
@@ -113,6 +113,7 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
             self.Wa = nn.Linear(HIDDEN_SIZE, HIDDEN_SIZE)
         elif self.method  == "concat":
             pass # TODO
+        self.softmax = nn.Softmax(2)
         self.Wc = nn.Linear(HIDDEN_SIZE * 2, HIDDEN_SIZE)
 
     def window(self, ht, hs, t, mask): # for local attention
@@ -122,12 +123,12 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
             return hs[:, p0:p1], mask[0][:, p0:p1]
         if self.type[-1] == "p": # predicative
             S = Tensor(mask[1]) # source sequence length
-            pt = S * F.sigmoid(self.Vp(F.tanh(self.Wp(ht)))).view(-1) # aligned position
+            pt = S * torch.sigmoid(self.Vp(torch.tanh(self.Wp(ht)))).view(-1) # aligned position
             hs_w = []
             mask_w = []
             k = [] # truncated Gaussian distribution as kernel function
             for i in range(BATCH_SIZE):
-                p = int(scalar(S[i]))
+                p = int(S[i].item())
                 seq_len = mask[1][i]
                 min_len = mask[1][-1]
                 p0 = max(0, min(p - self.window_size, seq_len - self.window_size))
@@ -153,7 +154,7 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
         elif self.method == "concat":
             pass # TODO
         a = a.masked_fill(mask.unsqueeze(1), -10000) # masking in log space
-        a = F.softmax(a, 2) # [B, 1, H] @ [B, H, L] = [B, 1, L]
+        a = self.softmax(a) # [B, 1, H] @ [B, H, L] = [B, 1, L]
         if self.type == "local-p":
             a = a * k
         return a # alignment weights
@@ -170,7 +171,7 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
         a = self.align(ht, hs, mask, k) # alignment vector
         c = a.bmm(hs) # context vector [B, 1, H]
         h = torch.cat((c, ht), 2)
-        self.hidden = F.tanh(self.Wc(h)) # attentional vector
+        self.hidden = torch.tanh(self.Wc(h)) # attentional vector
         return self.hidden
 
 def Tensor(*args):
@@ -184,9 +185,6 @@ def LongTensor(*args):
 def zeros(*args):
     x = torch.zeros(*args)
     return x.cuda() if CUDA else x
-
-def scalar(x):
-    return x.view(-1).data.tolist()[0]
 
 def maskset(x):
     mask = x.data.eq(PAD_IDX)

@@ -1,7 +1,5 @@
 import sys
-import re
 import time
-from model import *
 from utils import *
 from os.path import isfile
 
@@ -46,9 +44,6 @@ def train():
     print("cuda: %s" % CUDA)
     num_epochs = int(sys.argv[5])
     data, src_vocab, tgt_vocab = load_data()
-    if VERBOSE:
-        src_itow = [w for w, _ in sorted(src_vocab.items(), key = lambda x: x[1])]
-        tgt_itow = [w for w, _ in sorted(tgt_vocab.items(), key = lambda x: x[1])]
     enc = encoder(len(src_vocab))
     dec = decoder(len(tgt_vocab))
     enc_optim = torch.optim.SGD(enc.parameters(), lr = LEARNING_RATE, weight_decay = WEIGHT_DECAY)
@@ -68,8 +63,6 @@ def train():
             enc.zero_grad()
             dec.zero_grad()
             mask = maskset(x)
-            if VERBOSE:
-                pred = [[] for _ in range(BATCH_SIZE)]
             enc_out = enc(x, mask)
             dec_in = LongTensor([SOS_IDX] * BATCH_SIZE).unsqueeze(1)
             dec.hidden = enc.hidden
@@ -79,14 +72,11 @@ def train():
                 dec_out = dec(dec_in, enc_out, t, mask)
                 loss += F.nll_loss(dec_out, y[:, t], size_average = False, ignore_index = PAD_IDX)
                 dec_in = y[:, t].unsqueeze(1) # teacher forcing
-                if VERBOSE:
-                    for i, j in enumerate(dec_out.data.topk(1)[1]):
-                        pred[i].append(scalar(j))
             loss /= y.data.gt(0).sum().float() # divide by the number of unpadded tokens
             loss.backward()
             enc_optim.step()
             dec_optim.step()
-            loss = scalar(loss)
+            loss = loss.item()
             loss_sum += loss
             # print("epoch = %d, iteration = %d, loss = %f" % (ei, ii, loss))
         timer = time.time() - timer
@@ -94,10 +84,6 @@ def train():
         if ei % SAVE_EVERY and ei != epoch + num_epochs:
             save_checkpoint("", None, None, ei, loss_sum, timer)
         else:
-            if VERBOSE:
-                for x, y in zip(x, pred):
-                    print(" ".join([src_itow[scalar(i)] for i in x if scalar(i) != PAD_IDX]))
-                    print(" ".join([tgt_itow[i] for i in y if i != PAD_IDX]))
             save_checkpoint(filename, enc, dec, ei, loss_sum, timer)
 
 if __name__ == "__main__":

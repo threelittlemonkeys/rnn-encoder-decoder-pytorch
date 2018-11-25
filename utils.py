@@ -29,8 +29,10 @@ def load_vocab(filename, ext):
 def load_checkpoint(filename, enc = None, dec = None):
     print("loading model...")
     checkpoint = torch.load(filename)
-    enc.load_state_dict(checkpoint["encoder_state_dict"])
-    dec.load_state_dict(checkpoint["decoder_state_dict"])
+    if enc:
+        enc.load_state_dict(checkpoint["encoder_state_dict"])
+    if dec:
+        dec.load_state_dict(checkpoint["decoder_state_dict"])
     epoch = checkpoint["epoch"]
     loss = checkpoint["loss"]
     print("saved model: epoch = %d, loss = %f" % (checkpoint["epoch"], checkpoint["loss"]))
