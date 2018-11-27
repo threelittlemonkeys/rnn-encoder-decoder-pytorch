@@ -15,7 +15,7 @@ WEIGHT_DECAY = 1e-4
 TEACHER_FORCING = 0.5
 VERBOSE = False
 MAX_ITER = 50 # maximum number of decoding iterations
-SAVE_EVERY = 1
+SAVE_EVERY = 10
 
 PAD = "<PAD>" # padding
 EOS = "<EOS>" # end of sequence
