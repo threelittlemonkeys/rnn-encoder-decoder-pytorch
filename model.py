@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 UNIT = "word" # unit for tokenization (char, word)
-BATCH_SIZE = 64
+BATCH_SIZE = 256
 EMBED_SIZE = 300
 HIDDEN_SIZE = 1000
 NUM_LAYERS = 2

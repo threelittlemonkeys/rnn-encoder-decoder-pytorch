@@ -70,7 +70,7 @@ def train():
                 dec.attn.hidden = zeros(BATCH_SIZE, 1, HIDDEN_SIZE)
             for t in range(y.size(1)):
                 dec_out = dec(dec_in, enc_out, t, mask)
-                loss += F.nll_loss(dec_out, y[:, t], size_average = False, ignore_index = PAD_IDX)
+                loss += F.nll_loss(dec_out, y[:, t], ignore_index = PAD_IDX, reduction = "sum")
                 dec_in = y[:, t].unsqueeze(1) # teacher forcing
             loss /= y.data.gt(0).sum().float() # divide by the number of unpadded tokens
             loss.backward()
