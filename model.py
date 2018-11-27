@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-UNIT = "word" # unit for tokenization (char, word)
+UNIT = "char" # unit for tokenization (char, word)
 BATCH_SIZE = 256
-EMBED_SIZE = 300
+EMBED_SIZE = 50
 HIDDEN_SIZE = 1000
 NUM_LAYERS = 2
 DROPOUT = 0.5
@@ -14,6 +14,7 @@ LEARNING_RATE = 0.01
 WEIGHT_DECAY = 1e-4
 TEACHER_FORCING = 0.5
 VERBOSE = False
+MAX_ITER = 50 # maximum number of decoding iterations
 SAVE_EVERY = 1
 
 PAD = "<PAD>" # padding

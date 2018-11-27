@@ -30,7 +30,7 @@ def run_model(enc, dec, tgt_vocab, data):
     if dec.feed_input:
         dec.attn.hidden = zeros(BATCH_SIZE, 1, HIDDEN_SIZE)
     t = 0
-    while sum(eos) < z:
+    while sum(eos) < z and t < MAX_ITER:
         dec_out = dec(dec_in, enc_out, t, mask)
         dec_in = dec_out.data.topk(1)[1]
         y = dec_in.view(-1).tolist()
@@ -70,4 +70,5 @@ if __name__ == "__main__":
     if len(sys.argv) != 5:
         sys.exit("Usage: %s model vocab.src vocab.tgt test_data" % sys.argv[0])
     print("cuda: %s" % CUDA)
-    predict()
+    with torch.no_grad():
+        predict()
