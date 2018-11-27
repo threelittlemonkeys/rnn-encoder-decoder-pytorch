@@ -21,7 +21,7 @@ def load_vocab(filename, ext):
     vocab = {}
     fo = open(filename)
     for line in fo:
-        line = line.strip()
+        line = line[:-1]
         vocab[line] = len(vocab)
     fo.close()
     return vocab
