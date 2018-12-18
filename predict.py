@@ -47,6 +47,7 @@ def run_model(enc, dec, tgt_vocab, data):
 def predict():
     idx = 0
     data = []
+    result = []
     enc, dec, src_vocab, tgt_vocab = load_model()
     fo = open(sys.argv[4])
     for line in fo:
@@ -55,16 +56,14 @@ def predict():
         x = [src_vocab[i] if i in src_vocab else UNK_IDX for i in x] + [EOS_IDX]
         data.append([idx, line, x, []])
         if len(data) == BATCH_SIZE:
-            result = run_model(enc, dec, tgt_vocab, data)
-            for x in result:
-                print(x)
+            result.extend(run_model(enc, dec, tgt_vocab, data))
             data = []
         idx += 1
     fo.close()
     if len(data):
-        result = run_model(enc, dec, tgt_vocab, data)
-        for x in result:
-            print(x)
+        result.extend(run_model(enc, dec, tgt_vocab, data))
+    for x in result:
+        print(x)
 
 if __name__ == "__main__":
     if len(sys.argv) != 5:
