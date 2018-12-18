@@ -104,6 +104,7 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
         self.type = "global" # global, local-m, local-p
         self.method = "dot" # dot, general, concat
         self.hidden = None # attentional hidden state for input feeding
+        self.Va = None # attention weights
 
         # architecture
         if self.type[:5] == "local":
@@ -170,7 +171,7 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
             else:
                 mask = mask[0]
             k = None
-        a = self.align(ht, hs, mask, k) # alignment vector
+        a = self.Va = self.align(ht, hs, mask, k) # alignment vector
         c = a.bmm(hs) # context vector [B, 1, H]
         h = torch.cat((c, ht), 2)
         self.hidden = torch.tanh(self.Wc(h)) # attentional vector
