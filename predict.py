@@ -19,7 +19,7 @@ def run_model(enc, dec, tgt_vocab, data):
     z = len(data)
     eos = [0 for _ in range(z)] # number of EOS tokens in the batch
     while len(data) < BATCH_SIZE:
-        data.append([-1, "", [EOS_IDX], []])
+        data.append([-1, [], [EOS_IDX], []])
     data.sort(key = lambda x: len(x[2]), reverse = True)
     batch_len = len(data[0][2])
     batch = LongTensor([x[2] + [PAD_IDX] * (batch_len - len(x[2])) for x in data])
@@ -30,6 +30,7 @@ def run_model(enc, dec, tgt_vocab, data):
     if dec.feed_input:
         dec.attn.hidden = zeros(BATCH_SIZE, 1, HIDDEN_SIZE)
     t = 0
+    heatmap = [[[""] + x[1] + [EOS]] for x in data[:z]]
     while sum(eos) < z and t < MAX_ITER:
         dec_out = dec(dec_in, enc_out, t, mask)
         dec_in = dec_out.data.topk(1)[1]
@@ -39,9 +40,13 @@ def run_model(enc, dec, tgt_vocab, data):
                 continue
             if y[i] == EOS_IDX:
                 eos[i] = 1
-            else:
-                data[i][3].append(tgt_vocab[y[i]])
+                continue
+            k = tgt_vocab[y[i]]
+            data[i][3].append(k)
+            heatmap[i].append([k] + dec.attn.Va[i][0].tolist())
         t += 1
+    for m in heatmap:
+        print(mat2csv(m))
     return [(x[1], x[3]) for x in sorted(data[:z])]
 
 def predict():
@@ -51,9 +56,8 @@ def predict():
     enc, dec, src_vocab, tgt_vocab = load_model()
     fo = open(sys.argv[4])
     for line in fo:
-        line = line.strip()
-        x = tokenize(line, UNIT)
-        x = [src_vocab[i] if i in src_vocab else UNK_IDX for i in x] + [EOS_IDX]
+        line = tokenize(line, UNIT)
+        x = [src_vocab[i] if i in src_vocab else UNK_IDX for i in line] + [EOS_IDX]
         data.append([idx, line, x, []])
         if len(data) == BATCH_SIZE:
             result.extend(run_model(enc, dec, tgt_vocab, data))
