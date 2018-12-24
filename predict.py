@@ -32,7 +32,7 @@ def run_model(enc, dec, tgt_vocab, data):
     t = 0
     if VERBOSE:
         heatmap = [[[""] + x[1] + [EOS]] for x in data[:z]]
-    while sum(eos) < z and t < MAX_ITER:
+    while sum(eos) < z and t < MAX_LEN:
         dec_out = dec(dec_in, enc_out, t, mask)
         dec_in = dec_out.data.topk(1)[1]
         y = dec_in.view(-1).tolist()

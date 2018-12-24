@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 UNIT = "word" # unit for tokenization (char, word)
+MIN_LEN = 1 # minimum sequence length for training
+MAX_LEN = 50 # maximum sequence length for training and decoding
 BATCH_SIZE = 64
 EMBED_SIZE = 300
 HIDDEN_SIZE = 1000
@@ -12,9 +14,8 @@ BIDIRECTIONAL = True
 NUM_DIRS = 2 if BIDIRECTIONAL else 1
 LEARNING_RATE = 0.01
 WEIGHT_DECAY = 1e-4
-TEACHER_FORCING = 0.5
+BEAM_SIZE = 3
 VERBOSE = False
-MAX_ITER = 50 # maximum number of decoding iterations
 SAVE_EVERY = 10
 
 PAD = "<PAD>" # padding

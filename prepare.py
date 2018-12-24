@@ -1,8 +1,6 @@
 import sys
-from utils import *
-
-MIN_LEN = 1
-MAX_LEN = 50
+from model import *
+from utils import tokenize
 
 def load_data():
     data = []
