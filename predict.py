@@ -34,6 +34,7 @@ def run_model(enc, dec, tgt_vocab, data):
         heatmap = [[[""] + x[1] + [EOS]] for x in data[:z]]
     while sum(eos) < z and t < MAX_LEN:
         dec_out = dec(dec_in, enc_out, t, mask)
+        # print(dec_out[0].topk(BEAM_SIZE)[1].tolist())
         dec_in = dec_out.data.topk(1)[1]
         y = dec_in.view(-1).tolist()
         for i in range(z):

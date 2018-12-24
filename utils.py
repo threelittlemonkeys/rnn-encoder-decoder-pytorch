@@ -56,7 +56,7 @@ def mat2csv(m, delim ="\t", n = 6):
     for v in m[1:]:
         csv += v[0] + delim
         if n:
-            csv += delim.join([str(round(x, n)) if x > k else "" for x in v[1:]]) + "\n"
+            csv += delim.join([str(round(x, n)) if x > k else "0" for x in v[1:]]) + "\n"
         else:
             csv += delim.join([str(x) for x in v[1:]]) + "\n"
     return csv
