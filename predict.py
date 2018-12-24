@@ -30,7 +30,8 @@ def run_model(enc, dec, tgt_vocab, data):
     if dec.feed_input:
         dec.attn.hidden = zeros(BATCH_SIZE, 1, HIDDEN_SIZE)
     t = 0
-    heatmap = [[[""] + x[1] + [EOS]] for x in data[:z]]
+    if VERBOSE:
+        heatmap = [[[""] + x[1] + [EOS]] for x in data[:z]]
     while sum(eos) < z and t < MAX_ITER:
         dec_out = dec(dec_in, enc_out, t, mask)
         dec_in = dec_out.data.topk(1)[1]
@@ -43,10 +44,12 @@ def run_model(enc, dec, tgt_vocab, data):
                 continue
             k = tgt_vocab[y[i]]
             data[i][3].append(k)
-            heatmap[i].append([k] + dec.attn.Va[i][0].tolist())
+            if VERBOSE:
+                heatmap[i].append([k] + dec.attn.Va[i][0].tolist())
         t += 1
-    for m in heatmap:
-        print(mat2csv(m))
+    if VERBOSE:
+        for m in heatmap:
+            print(mat2csv(m))
     return [(x[1], x[3]) for x in sorted(data[:z])]
 
 def predict():
