@@ -15,11 +15,12 @@ def load_model():
     return enc, dec, src_vocab, tgt_vocab
 
 def run_model(enc, dec, tgt_vocab, data):
-    batch = []
     z = len(data)
     eos = [0 for _ in range(z)] # number of EOS tokens in the batch
     while len(data) < BATCH_SIZE:
-        data.append([-1, [], [EOS_IDX], []])
+        data.append([-1, [], [EOS_IDX], [], 0])
+    for x in data:
+        print(x)
     data.sort(key = lambda x: len(x[2]), reverse = True)
     batch_len = len(data[0][2])
     batch = LongTensor([x[2] + [PAD_IDX] * (batch_len - len(x[2])) for x in data])
@@ -31,12 +32,14 @@ def run_model(enc, dec, tgt_vocab, data):
         dec.attn.hidden = zeros(BATCH_SIZE, 1, HIDDEN_SIZE)
     t = 0
     if VERBOSE:
-        heatmap = [[[""] + x[1] + [EOS]] for x in data[:z]]
+        heatmap = [[[""] + x[1] + [EOS]] for x in data[:z]] # attention heat map
     while sum(eos) < z and t < MAX_LEN:
         dec_out = dec(dec_in, enc_out, t, mask)
-        # print(dec_out[0].topk(BEAM_SIZE)[1].tolist())
-        dec_in = dec_out.data.topk(1)[1]
-        y = dec_in.view(-1).tolist()
+        y = [(b, a) for x in zip(*dec_out.topk(BEAM_SIZE)) for a, b in zip(*x)]
+        for a, b in y:
+            print(tgt_vocab[a], b)
+        dec_in = dec_out.topk(1)[1]
+        y = dec_in.view(-1).tolist()[:z]
         for i in range(z):
             if eos[i]:
                 continue
@@ -50,9 +53,8 @@ def run_model(enc, dec, tgt_vocab, data):
         t += 1
     if VERBOSE:
         for m in heatmap:
-            print(mat2csv(m))
-    return [(x[1], x[3]) for x in sorted(data[:z])]
-
+            print(mat2csv(m, rh = True))
+    return [(x[1], x[3]) for x in sorted(data[:z])] 
 def predict():
     idx = 0
     data = []
@@ -62,7 +64,7 @@ def predict():
     for line in fo:
         line = tokenize(line, UNIT)
         x = [src_vocab[i] if i in src_vocab else UNK_IDX for i in line] + [EOS_IDX]
-        data.append([idx, line, x, []])
+        data.extend([[idx, line, x, [], 0] for _ in range(BEAM_SIZE)])
         if len(data) == BATCH_SIZE:
             result.extend(run_model(enc, dec, tgt_vocab, data))
             data = []
@@ -77,5 +79,6 @@ if __name__ == "__main__":
     if len(sys.argv) != 5:
         sys.exit("Usage: %s model vocab.src vocab.tgt test_data" % sys.argv[0])
     print("cuda: %s" % CUDA)
+    print("batch size: %d" % BATCH_SIZE)
     with torch.no_grad():
         predict()
