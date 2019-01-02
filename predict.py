@@ -19,8 +19,6 @@ def run_model(enc, dec, tgt_vocab, data):
     eos = [0 for _ in range(z)] # number of EOS tokens in the batch
     while len(data) < BATCH_SIZE:
         data.append([-1, [], [EOS_IDX], [], 0])
-    for x in data:
-        print(x)
     data.sort(key = lambda x: len(x[2]), reverse = True)
     batch_len = len(data[0][2])
     batch = LongTensor([x[2] + [PAD_IDX] * (batch_len - len(x[2])) for x in data])
@@ -33,11 +31,17 @@ def run_model(enc, dec, tgt_vocab, data):
     t = 0
     if VERBOSE:
         heatmap = [[[""] + x[1] + [EOS]] for x in data[:z]] # attention heat map
+    for x in data:
+        print(x)
     while sum(eos) < z and t < MAX_LEN:
         dec_out = dec(dec_in, enc_out, t, mask)
         y = [(b, a) for x in zip(*dec_out.topk(BEAM_SIZE)) for a, b in zip(*x)]
-        for a, b in y:
-            print(tgt_vocab[a], b)
+        if t == 0:
+            for a, b in y:
+                print(tgt_vocab[a], a, b)
+            exit()
+        else:
+            pass
         dec_in = dec_out.topk(1)[1]
         y = dec_in.view(-1).tolist()[:z]
         for i in range(z):
@@ -54,7 +58,7 @@ def run_model(enc, dec, tgt_vocab, data):
     if VERBOSE:
         for m in heatmap:
             print(mat2csv(m, rh = True))
-    return [(x[1], x[3]) for x in sorted(data[:z])] 
+    return [(x[1], x[3]) for x in sorted(data[:z])]
 def predict():
     idx = 0
     data = []
@@ -62,9 +66,9 @@ def predict():
     enc, dec, src_vocab, tgt_vocab = load_model()
     fo = open(sys.argv[4])
     for line in fo:
-        line = tokenize(line, UNIT)
-        x = [src_vocab[i] if i in src_vocab else UNK_IDX for i in line] + [EOS_IDX]
-        data.extend([[idx, line, x, [], 0] for _ in range(BEAM_SIZE)])
+        tkn = tokenize(line, UNIT)
+        x = [src_vocab[i] if i in src_vocab else UNK_IDX for i in tkn] + [EOS_IDX]
+        data.extend([[idx, tkn, x, [], 0] for _ in range(BEAM_SIZE)])
         if len(data) == BATCH_SIZE:
             result.extend(run_model(enc, dec, tgt_vocab, data))
             data = []
