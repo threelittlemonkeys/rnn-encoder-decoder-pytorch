@@ -16,7 +16,7 @@ def load_model():
 
 def run_model(enc, dec, tgt_vocab, data):
     z = len(data)
-    eos = [0 for _ in range(z)] # number of EOS tokens in the batch
+    eos = [0 for _ in range(z)] # number of completed sequences in the batch
     while len(data) < BATCH_SIZE:
         data.append([-1, [], [EOS_IDX], [], 0])
     data.sort(key = lambda x: len(x[2]), reverse = True)
@@ -31,17 +31,9 @@ def run_model(enc, dec, tgt_vocab, data):
     t = 0
     if VERBOSE:
         heatmap = [[[""] + x[1] + [EOS]] for x in data[:z]] # attention heat map
-    for x in data:
-        print(x)
     while sum(eos) < z and t < MAX_LEN:
-        dec_out = dec(dec_in, enc_out, t, mask)
-        y = [(b, a) for x in zip(*dec_out.topk(BEAM_SIZE)) for a, b in zip(*x)]
-        if t == 0:
-            for a, b in y:
-                print(tgt_vocab[a], a, b)
-            exit()
-        else:
-            pass
+        '''
+        # greedy decoding
         dec_in = dec_out.topk(1)[1]
         y = dec_in.view(-1).tolist()[:z]
         for i in range(z):
@@ -54,11 +46,42 @@ def run_model(enc, dec, tgt_vocab, data):
             data[i][3].append(k)
             if VERBOSE:
                 heatmap[i].append([k] + dec.attn.Va[i][0].tolist())
+        '''
+        # beam search
+        dec_out = dec(dec_in, enc_out, t, mask)
+        p, y = dec_out[:z].topk(BEAM_SIZE)
+        p += Tensor([-10000 if eos[i] else data[i][4] for i in range(z)]).unsqueeze(1)
+        p = p.view(z // BEAM_SIZE, -1)
+        y = y.view(z // BEAM_SIZE, -1)
+        if t == 0:
+            p = p[:, :BEAM_SIZE]
+            y = y[:, :BEAM_SIZE]
+        for i, (p, y) in enumerate(zip(p, y)):
+            j = i * BEAM_SIZE
+            for p, k in zip(*p.topk(BEAM_SIZE)):
+                k = y[k].item()
+                while j < (i + 1) * BEAM_SIZE:
+                    if eos[j] and p < data[j][4]:
+                        j += 1
+                        continue
+                    data[j][3].append(k)
+                    data[j][4] = p
+                    eos[j] = k == EOS_IDX
+                    j += 1
+                    break
+        dec_in = [x[3][-1] if len(x[3]) else SOS_IDX for x in data]
+        print([tgt_vocab[x] for x in dec_in[:z]])
+        print()
+        dec_in = LongTensor(dec_in).unsqueeze(1)
         t += 1
+    '''
+    # TODO
     if VERBOSE:
         for m in heatmap:
             print(mat2csv(m, rh = True))
-    return [(x[1], x[3]) for x in sorted(data[:z])]
+    '''
+    return [(x[1], [tgt_vocab[x] for x in x[3][:-1]]) for x in sorted(data[:z])]
+
 def predict():
     idx = 0
     data = []
