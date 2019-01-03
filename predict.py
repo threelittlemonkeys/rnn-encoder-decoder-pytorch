@@ -32,6 +32,7 @@ def run_model(enc, dec, tgt_vocab, data):
     if VERBOSE:
         heatmap = [[[""] + x[1] + [EOS]] for x in data[:z]] # attention heat map
     while sum(eos) < z and t < MAX_LEN:
+        dec_out = dec(dec_in, enc_out, t, mask)
         '''
         # greedy decoding
         dec_in = dec_out.topk(1)[1]
@@ -48,7 +49,6 @@ def run_model(enc, dec, tgt_vocab, data):
                 heatmap[i].append([k] + dec.attn.Va[i][0].tolist())
         '''
         # beam search
-        dec_out = dec(dec_in, enc_out, t, mask)
         p, y = dec_out[:z].topk(BEAM_SIZE)
         p += Tensor([-10000 if eos[i] else data[i][4] for i in range(z)]).unsqueeze(1)
         p = p.view(z // BEAM_SIZE, -1)
@@ -69,17 +69,19 @@ def run_model(enc, dec, tgt_vocab, data):
                     eos[j] = k == EOS_IDX
                     j += 1
                     break
+            # TODO
+            '''
+            if VERBOSE:
+                heatmap[i].append([k] + dec.attn.Va[i][0].tolist())
+            '''
         dec_in = [x[3][-1] if len(x[3]) else SOS_IDX for x in data]
         print([tgt_vocab[x] for x in dec_in[:z]])
         print()
         dec_in = LongTensor(dec_in).unsqueeze(1)
         t += 1
-    '''
-    # TODO
     if VERBOSE:
         for m in heatmap:
             print(mat2csv(m, rh = True))
-    '''
     return [(x[1], [tgt_vocab[x] for x in x[3][:-1]]) for x in sorted(data[:z])]
 
 def predict():
