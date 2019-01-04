@@ -1,6 +1,6 @@
 # RNN Encoder-Decoder in PyTorch
 
-A PyTorch implementation of the RNN Encoder-Decoder for sequence to sequence learning, adapted from [the PyTorch tutorial](http://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html).
+A minimal PyTorch implementation of RNN Encoder-Decoder for sequence to sequence learning, adapted from [the PyTorch tutorial](http://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html).
 
 Supported features:
 - Mini-batch training with CUDA
@@ -37,6 +37,8 @@ python predict.py model.epochN vocab.src vocab.tgt test_data
 ## References
 
 Dzmitry Bahdanau, Kyunghyun Cho, Yoshua Bengio. 2015. [Neural Machine Translation by Jointly Learning to Align and Translate.](https://arxiv.org/abs/1409.0473) arXiv:1409.0473.
+
+Denny Britz, Anna Goldie, Minh-Thang Luong, Quoc Le. 2017. [Massive Exploration of Neural Machine Translation Architectures.](https://arxiv.org/abs/1703.03906) arXiv:1703.03906.
 
 Kyunghyun Cho, Bart van Merrienboer, Caglar Gulcehre, Dzmitry Bahdanau, Fethi Bougares, Holger Schwenk, Yoshua Bengio. 2014. [Learning Phrase Representations using RNN Encoder-Decoder for Statistical Machine Translation.](https://arxiv.org/abs/1406.1078) arXiv:1406.1078.
 

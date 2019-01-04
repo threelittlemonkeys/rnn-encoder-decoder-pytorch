@@ -48,14 +48,11 @@ def run_model(enc, dec, tgt_vocab, data):
             if VERBOSE:
                 heatmap[i].append([k] + dec.attn.Va[i][0].tolist())
         '''
-        # beam search
+        # beam search decoding
         p, y = dec_out[:z].topk(BEAM_SIZE)
         p += Tensor([-10000 if eos[i] else data[i][4] for i in range(z)]).unsqueeze(1)
-        p = p.view(z // BEAM_SIZE, -1)
-        y = y.view(z // BEAM_SIZE, -1)
-        if t == 0:
-            p = p[:, :BEAM_SIZE]
-            y = y[:, :BEAM_SIZE]
+        p = p.view(z // BEAM_SIZE, -1)[:, :BEAM_SIZE ** (2 if t else 1)]
+        y = y.view(z // BEAM_SIZE, -1)[:, :BEAM_SIZE ** (2 if t else 1)]
         for i, (p, y) in enumerate(zip(p, y)):
             j = i * BEAM_SIZE
             for p, k in zip(*p.topk(BEAM_SIZE)):
