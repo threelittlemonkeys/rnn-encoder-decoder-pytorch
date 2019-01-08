@@ -50,30 +50,32 @@ def run_model(enc, dec, tgt_vocab, data):
         '''
         # beam search decoding
         p, y = dec_out[:z].topk(BEAM_SIZE)
-        p += Tensor([-10000 if eos[i] else data[i][4] for i in range(z)]).unsqueeze(1)
-        p = p.view(z // BEAM_SIZE, -1)[:, :BEAM_SIZE ** (2 if t else 1)]
-        y = y.view(z // BEAM_SIZE, -1)[:, :BEAM_SIZE ** (2 if t else 1)]
+        p += Tensor([0 if eos[i] else data[i][4] for i in range(z)]).unsqueeze(1)
+        p = p.view(z // BEAM_SIZE, -1)
+        y = y.view(z // BEAM_SIZE, -1)
+        if t == 0:
+            p = p[:, :BEAM_SIZE]
+            y = y[:, :BEAM_SIZE]
         for i, (p, y) in enumerate(zip(p, y)):
             j = i * BEAM_SIZE
+            old = data[j:j + BEAM_SIZE]
+            new = []
             for p, k in zip(*p.topk(BEAM_SIZE)):
-                k = y[k].item()
-                while j < (i + 1) * BEAM_SIZE:
-                    if eos[j] and p < data[j][4]:
-                        j += 1
-                        continue
-                    data[j][3].append(k)
-                    data[j][4] = p
-                    eos[j] = k == EOS_IDX
-                    j += 1
-                    break
-            # TODO
+                new.append(old[k // BEAM_SIZE].copy())
+                new[-1][3] = new[-1][3].copy()
+                new[-1][3].append(y[k].item())
+                new[-1][4] += p.item()
+            for _, x in filter(lambda x: eos[j + x[0]], enumerate(old)):
+                new.append(x)
+            data[j:j + BEAM_SIZE] = sorted(new, key = lambda x: x[4], reverse = True)[:BEAM_SIZE]
+            for x in data[j:j + BEAM_SIZE]:
+                print([tgt_vocab[x] for x in x[3]] + [x[4]])
+            print()
             '''
             if VERBOSE:
                 heatmap[i].append([k] + dec.attn.Va[i][0].tolist())
             '''
         dec_in = [x[3][-1] if len(x[3]) else SOS_IDX for x in data]
-        print([tgt_vocab[x] for x in dec_in[:z]])
-        print()
         dec_in = LongTensor(dec_in).unsqueeze(1)
         t += 1
     if VERBOSE:
