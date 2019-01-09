@@ -50,7 +50,7 @@ def run_model(enc, dec, tgt_vocab, data):
         '''
         # beam search decoding
         p, y = dec_out[:z].topk(BEAM_SIZE)
-        p += Tensor([0 if eos[i] else data[i][4] for i in range(z)]).unsqueeze(1)
+        p += Tensor([-10000 if eos[i] else data[i][4] for i in range(z)]).unsqueeze(1)
         p = p.view(z // BEAM_SIZE, -1)
         y = y.view(z // BEAM_SIZE, -1)
         if t == 0:
@@ -71,13 +71,11 @@ def run_model(enc, dec, tgt_vocab, data):
             for k, x in enumerate(new):
                 data[j + k] = x
                 eos[j + k] = x[3][-1] == EOS_IDX
-            for x in data[j:j + BEAM_SIZE]:
-                print([tgt_vocab[x] for x in x[3]] + [x[4]])
-            print()
-            '''
             if VERBOSE:
-                heatmap[i].append([k] + dec.attn.Va[i][0].tolist())
-            '''
+                print("t = %d" % t)
+                for x in data[j:j + BEAM_SIZE]:
+                    print([tgt_vocab[x] for x in x[3]] + [x[4]])
+                # TODO heatmap[i].append([k] + dec.attn.Va[i][0].tolist())
         dec_in = [x[3][-1] if len(x[3]) else SOS_IDX for x in data]
         dec_in = LongTensor(dec_in).unsqueeze(1)
         t += 1
