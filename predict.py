@@ -67,7 +67,10 @@ def run_model(enc, dec, tgt_vocab, data):
                 new[-1][4] += p.item()
             for _, x in filter(lambda x: eos[j + x[0]], enumerate(old)):
                 new.append(x)
-            data[j:j + BEAM_SIZE] = sorted(new, key = lambda x: x[4], reverse = True)[:BEAM_SIZE]
+            new = sorted(new, key = lambda x: x[4], reverse = True)[:BEAM_SIZE]
+            for k, x in enumerate(new):
+                data[j + k] = x
+                eos[j + k] = x[3][-1] == EOS_IDX
             for x in data[j:j + BEAM_SIZE]:
                 print([tgt_vocab[x] for x in x[3]] + [x[4]])
             print()
