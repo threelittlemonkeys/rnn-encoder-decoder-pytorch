@@ -34,7 +34,7 @@ def run_model(enc, dec, tgt_vocab, data):
     while sum(eos) < z and t < MAX_LEN:
         dec_out = dec(dec_in, enc_out, t, mask)
         '''
-        # greedy decoding
+        # greedy search decoding
         dec_in = dec_out.topk(1)[1]
         y = dec_in.view(-1).tolist()[:z]
         for i in range(z):
@@ -43,10 +43,9 @@ def run_model(enc, dec, tgt_vocab, data):
             if y[i] == EOS_IDX:
                 eos[i] = 1
                 continue
-            k = tgt_vocab[y[i]]
-            data[i][3].append(k)
+            data[i][3].append(y[i])
             if VERBOSE:
-                heatmap[i].append([k] + dec.attn.Va[i][0].tolist())
+                heatmap[i].append([y[i]] + dec.attn.Va[i][0].tolist())
         '''
         # beam search decoding
         p, y = dec_out[:z].topk(BEAM_SIZE)
@@ -62,8 +61,7 @@ def run_model(enc, dec, tgt_vocab, data):
             new = []
             for p, k in zip(*p.topk(BEAM_SIZE)):
                 new.append(old[k // BEAM_SIZE].copy())
-                new[-1][3] = new[-1][3].copy()
-                new[-1][3].append(y[k].item())
+                new[-1][3] = new[-1][3] + [y[k].item()]
                 new[-1][4] += p.item()
             for _, x in filter(lambda x: eos[j + x[0]], enumerate(old)):
                 new.append(x)
@@ -71,7 +69,7 @@ def run_model(enc, dec, tgt_vocab, data):
             for k, x in enumerate(new):
                 data[j + k] = x
                 eos[j + k] = x[3][-1] == EOS_IDX
-            if VERBOSE:
+            if True or VERBOSE:
                 print("t = %d" % t)
                 for x in data[j:j + BEAM_SIZE]:
                     print([tgt_vocab[x] for x in x[3]] + [x[4]])
