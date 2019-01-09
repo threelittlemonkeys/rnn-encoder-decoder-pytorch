@@ -70,8 +70,8 @@ def run_model(enc, dec, tgt_vocab, data):
                 data[j + k] = x
                 eos[j + k] = x[3][-1] == EOS_IDX
             if True or VERBOSE:
-                print("t = %d" % t)
-                for x in data[j:j + BEAM_SIZE]:
+                print("t = %d, y[%d] =" % (t, i))
+                for x in new:
                     print([tgt_vocab[x] for x in x[3]] + [x[4]])
                 # TODO heatmap[i].append([k] + dec.attn.Va[i][0].tolist())
         dec_in = [x[3][-1] if len(x[3]) else SOS_IDX for x in data]
