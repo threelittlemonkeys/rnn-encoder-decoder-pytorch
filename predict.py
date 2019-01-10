@@ -16,7 +16,7 @@ def load_model():
 
 def run_model(enc, dec, tgt_vocab, data):
     z = len(data)
-    eos = [0 for _ in range(z)] # number of completed sequences in the batch
+    eos = [False for _ in range(z)] # number of completed sequences in the batch
     while len(data) < BATCH_SIZE:
         data.append([-1, [], [EOS_IDX], [], 0])
     data.sort(key = lambda x: len(x[2]), reverse = True)
@@ -41,7 +41,7 @@ def run_model(enc, dec, tgt_vocab, data):
             if eos[i]:
                 continue
             if y[i] == EOS_IDX:
-                eos[i] = 1
+                eos[i] = True
                 continue
             data[i][3].append(y[i])
             if VERBOSE:
@@ -50,6 +50,10 @@ def run_model(enc, dec, tgt_vocab, data):
         # beam search decoding
         p, y = dec_out[:z].topk(BEAM_SIZE)
         p += Tensor([-10000 if eos[i] else data[i][4] for i in range(z)]).unsqueeze(1)
+        if True or VERBOSE:
+            print("\nt = %d" % t)
+            for p0, y0 in zip(p, y):
+                print([(round(p1.item(), 2), tgt_vocab[y1]) for p1, y1 in zip(p0, y0)])
         p = p.view(z // BEAM_SIZE, -1)
         y = y.view(z // BEAM_SIZE, -1)
         if t == 0:
@@ -61,8 +65,8 @@ def run_model(enc, dec, tgt_vocab, data):
             new = []
             for p, k in zip(*p.topk(BEAM_SIZE)):
                 new.append(old[k // BEAM_SIZE].copy())
-                new[-1][3] = new[-1][3] + [y[k].item()]
-                new[-1][4] += p.item()
+                new[-1][3] = new[-1][3] + [y[k]]
+                new[-1][4] = p
             for _, x in filter(lambda x: eos[j + x[0]], enumerate(old)):
                 new.append(x)
             new = sorted(new, key = lambda x: x[4], reverse = True)[:BEAM_SIZE]
@@ -70,9 +74,9 @@ def run_model(enc, dec, tgt_vocab, data):
                 data[j + k] = x
                 eos[j + k] = x[3][-1] == EOS_IDX
             if True or VERBOSE:
-                print("t = %d, y[%d] =" % (t, i))
+                print("y[%d] =" % i)
                 for x in new:
-                    print([tgt_vocab[x] for x in x[3]] + [x[4]])
+                    print([tgt_vocab[x] for x in x[3]] + [round(x[4].item(), 2)])
                 # TODO heatmap[i].append([k] + dec.attn.Va[i][0].tolist())
         dec_in = [x[3][-1] if len(x[3]) else SOS_IDX for x in data]
         dec_in = LongTensor(dec_in).unsqueeze(1)
