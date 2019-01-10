@@ -5,7 +5,7 @@ import torch.nn.functional as F
 UNIT = "word" # unit for tokenization (char, word)
 MIN_LEN = 1 # minimum sequence length for training
 MAX_LEN = 50 # maximum sequence length for training and decoding
-BATCH_SIZE = 6 # must be divisible by BEAM_SIZE at inference time
+BATCH_SIZE = 3 # must be divisible by BEAM_SIZE at inference time
 EMBED_SIZE = 300
 HIDDEN_SIZE = 1000
 NUM_LAYERS = 2
@@ -30,6 +30,7 @@ UNK_IDX = 3
 
 torch.manual_seed(1)
 CUDA = torch.cuda.is_available()
+assert BATCH_SIZE % BEAM_SIZE == 0
 
 class encoder(nn.Module):
     def __init__(self, vocab_size):

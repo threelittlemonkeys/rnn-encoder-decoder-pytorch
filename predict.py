@@ -14,9 +14,59 @@ def load_model():
     load_checkpoint(sys.argv[1], enc, dec)
     return enc, dec, src_vocab, tgt_vocab
 
+def greedy_search(dec, tgt_vocab, data, eos, dec_out, heatmap):
+    dec_in = dec_out.topk(1)[1]
+    y = dec_in.view(-1).tolist()
+    for i in range(len(eos)):
+        if eos[i]:
+            continue
+        if y[i] == EOS_IDX:
+            eos[i] = True
+            continue
+        data[i][3].append(y[i])
+        if VERBOSE:
+            heatmap[i].append([tgt_vocab[y[i]]] + dec.attn.Va[i][0].tolist())
+    return dec_in
+
+def beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap):
+    p, y = dec_out[:len(eos)].topk(BEAM_SIZE)
+    p += Tensor([-10000 if b else a[4] for a, b in zip(data, eos)]).unsqueeze(1)
+    if VERBOSE:
+        print("\nt = %d" % t)
+        for p0, y0 in zip(p, y):
+            print([(round(p1.item(), 4), tgt_vocab[y1]) for p1, y1 in zip(p0, y0)])
+    p = p.view(len(eos) // BEAM_SIZE, -1)
+    y = y.view(len(eos) // BEAM_SIZE, -1)
+    if t == 0:
+        p = p[:, :BEAM_SIZE]
+        y = y[:, :BEAM_SIZE]
+    for i, (p, y) in enumerate(zip(p, y)):
+        j = i * BEAM_SIZE
+        old = data[j:j + BEAM_SIZE]
+        new = []
+        for p, k in zip(*p.topk(BEAM_SIZE)):
+            new.append(old[k // BEAM_SIZE].copy())
+            new[-1][3] = new[-1][3] + [y[k]]
+            new[-1][4] = p
+        for _, x in filter(lambda x: eos[j + x[0]], enumerate(old)):
+            new.append(x)
+        new = sorted(new, key = lambda x: x[4], reverse = True)[:BEAM_SIZE]
+        for k, x in enumerate(new):
+            data[j + k] = x
+            eos[j + k] = x[3][-1] == EOS_IDX
+        if VERBOSE:
+            print("y[%d] =" % i)
+            for x in new:
+                print([tgt_vocab[x] for x in x[3]] + [round(x[4].item(), 4)])
+                # TODO
+                heatmap[i].append([tgt_vocab[x[3][-1]]] + dec.attn.Va[i][0].tolist())
+    dec_in = [x[3][-1] if len(x[3]) else SOS_IDX for x in data]
+    dec_in = LongTensor(dec_in).unsqueeze(1)
+    return dec_in
+
 def run_model(enc, dec, tgt_vocab, data):
-    z = len(data)
-    eos = [False for _ in range(z)] # number of completed sequences in the batch
+    t = 0
+    eos = [False for _ in data] # number of completed sequences in the batch
     while len(data) < BATCH_SIZE:
         data.append([-1, [], [EOS_IDX], [], 0])
     data.sort(key = lambda x: len(x[2]), reverse = True)
@@ -28,63 +78,18 @@ def run_model(enc, dec, tgt_vocab, data):
     dec.hidden = enc.hidden
     if dec.feed_input:
         dec.attn.hidden = zeros(BATCH_SIZE, 1, HIDDEN_SIZE)
-    t = 0
-    if VERBOSE:
-        heatmap = [[[""] + x[1] + [EOS]] for x in data[:z]] # attention heat map
-    while sum(eos) < z and t < MAX_LEN:
+    heatmap = [[[""] + x[1] + [EOS]] for x in data[:len(eos)]] if VERBOSE else None
+    while sum(eos) < len(eos) and t < MAX_LEN:
         dec_out = dec(dec_in, enc_out, t, mask)
-        '''
-        # greedy search decoding
-        dec_in = dec_out.topk(1)[1]
-        y = dec_in.view(-1).tolist()[:z]
-        for i in range(z):
-            if eos[i]:
-                continue
-            if y[i] == EOS_IDX:
-                eos[i] = True
-                continue
-            data[i][3].append(y[i])
-            if VERBOSE:
-                heatmap[i].append([y[i]] + dec.attn.Va[i][0].tolist())
-        '''
-        # beam search decoding
-        p, y = dec_out[:z].topk(BEAM_SIZE)
-        p += Tensor([-10000 if eos[i] else data[i][4] for i in range(z)]).unsqueeze(1)
-        if VERBOSE:
-            print("\nt = %d" % t)
-            for p0, y0 in zip(p, y):
-                print([(round(p1.item(), 4), tgt_vocab[y1]) for p1, y1 in zip(p0, y0)])
-        p = p.view(z // BEAM_SIZE, -1)
-        y = y.view(z // BEAM_SIZE, -1)
-        if t == 0:
-            p = p[:, :BEAM_SIZE]
-            y = y[:, :BEAM_SIZE]
-        for i, (p, y) in enumerate(zip(p, y)):
-            j = i * BEAM_SIZE
-            old = data[j:j + BEAM_SIZE]
-            new = []
-            for p, k in zip(*p.topk(BEAM_SIZE)):
-                new.append(old[k // BEAM_SIZE].copy())
-                new[-1][3] = new[-1][3] + [y[k]]
-                new[-1][4] = p
-            for _, x in filter(lambda x: eos[j + x[0]], enumerate(old)):
-                new.append(x)
-            new = sorted(new, key = lambda x: x[4], reverse = True)[:BEAM_SIZE]
-            for k, x in enumerate(new):
-                data[j + k] = x
-                eos[j + k] = x[3][-1] == EOS_IDX
-            if VERBOSE:
-                print("y[%d] =" % i)
-                for x in new:
-                    print([tgt_vocab[x] for x in x[3]] + [round(x[4].item(), 4)])
-                    heatmap[i].append([tgt_vocab[x[3][-1]]] + dec.attn.Va[i][0].tolist())
-        dec_in = [x[3][-1] if len(x[3]) else SOS_IDX for x in data]
-        dec_in = LongTensor(dec_in).unsqueeze(1)
+        if BEAM_SIZE == 1:
+            dec_in = greedy_search(dec, tgt_vocab, data, eos, dec_out, heatmap)
+        else:
+            dec_in = beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap)
         t += 1
     if VERBOSE:
         for m in heatmap:
             print(mat2csv(m, rh = True))
-    return [(x[1], [tgt_vocab[x] for x in x[3][:-1]]) for x in sorted(data[:z])]
+    return [(x[1], [tgt_vocab[x] for x in x[3][:-1]]) for x in sorted(data[:len(eos)])]
 
 def predict():
     idx = 0
