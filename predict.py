@@ -42,23 +42,30 @@ def beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap):
         y = y[:, :BEAM_SIZE]
     for i, (p, y) in enumerate(zip(p, y)):
         j = i * BEAM_SIZE
-        old = data[j:j + BEAM_SIZE]
-        new = []
+        d0 = data[j:j + BEAM_SIZE]
+        d1 = []
+        if VERBOSE:
+            m0 = heatmap[j:j + BEAM_SIZE]
+            m1 = []
         for p, k in zip(*p.topk(BEAM_SIZE)):
-            new.append(old[k // BEAM_SIZE].copy())
-            new[-1][3] = new[-1][3] + [y[k]]
-            new[-1][4] = p
-        for _, x in filter(lambda x: eos[j + x[0]], enumerate(old)):
-            new.append(x)
-        new = sorted(new, key = lambda x: x[4], reverse = True)[:BEAM_SIZE]
-        for k, x in enumerate(new):
+            d1.append(d0[k // BEAM_SIZE].copy())
+            d1[-1][3] = d1[-1][3] + [y[k]]
+            d1[-1][4] = p
+            if VERBOSE:
+                m1.append(m0[k // BEAM_SIZE].copy())
+                m1[-1].append([tgt_vocab[x[3][-1]]] + dec.attn.Va[i][0].tolist())
+        for _, x in filter(lambda x: eos[j + x[0]], enumerate(d0)):
+            d1.append(x)
+        d1 = sorted(d1, key = lambda x: x[4], reverse = True)[:BEAM_SIZE]
+        for k, x in enumerate(d1):
             k += j
             data[k] = x
             eos[k] = x[3][-1] == EOS_IDX
-            heatmap[k].append([tgt_vocab[x[3][-1]]] + dec.attn.Va[i][0].tolist())
+            if VERBOSE:
+                heatmap[k].append([tgt_vocab[x[3][-1]]] + dec.attn.Va[i][0].tolist())
         if VERBOSE:
             print("y[%d] =" % i)
-            for x in new:
+            for x in d1:
                 print([tgt_vocab[x] for x in x[3]] + [round(x[4].item(), 4)])
     dec_in = [x[3][-1] if len(x[3]) else SOS_IDX for x in data]
     dec_in = LongTensor(dec_in).unsqueeze(1)
