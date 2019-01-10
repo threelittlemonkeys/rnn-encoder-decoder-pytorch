@@ -32,7 +32,7 @@ def beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap):
     p, y = dec_out[:len(eos)].topk(BEAM_SIZE)
     p += Tensor([-10000 if b else a[4] for a, b in zip(data, eos)]).unsqueeze(1)
     if VERBOSE:
-        print("\nt = %d" % t)
+        print("\nt = %d\nb =" % t)
         for p0, y0 in zip(p, y):
             print([(round(p1.item(), 4), tgt_vocab[y1]) for p1, y1 in zip(p0, y0)])
     p = p.view(len(eos) // BEAM_SIZE, -1)
@@ -52,14 +52,14 @@ def beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap):
             new.append(x)
         new = sorted(new, key = lambda x: x[4], reverse = True)[:BEAM_SIZE]
         for k, x in enumerate(new):
-            data[j + k] = x
-            eos[j + k] = x[3][-1] == EOS_IDX
+            k += j
+            data[k] = x
+            eos[k] = x[3][-1] == EOS_IDX
+            heatmap[k].append([tgt_vocab[x[3][-1]]] + dec.attn.Va[i][0].tolist())
         if VERBOSE:
             print("y[%d] =" % i)
             for x in new:
                 print([tgt_vocab[x] for x in x[3]] + [round(x[4].item(), 4)])
-                # TODO
-                heatmap[i].append([tgt_vocab[x[3][-1]]] + dec.attn.Va[i][0].tolist())
     dec_in = [x[3][-1] if len(x[3]) else SOS_IDX for x in data]
     dec_in = LongTensor(dec_in).unsqueeze(1)
     return dec_in
