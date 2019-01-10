@@ -51,7 +51,7 @@ def save_checkpoint(filename, enc, dec, epoch, loss, time):
         torch.save(checkpoint, filename + ".epoch%d" % epoch)
         print("saved model at epoch %d" % epoch)
 
-def mat2csv(m, ch = True, rh = False, nd = 6, delim ="\t"):
+def mat2csv(m, ch = True, rh = False, nd = 4, delim ="\t"):
     f = "%%.%df" % nd
     if ch: # column header
         csv = delim.join([x for x in m[0]]) + "\n" # source sequence
