@@ -51,11 +51,16 @@ def beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap):
             d1.append(d0[k // BEAM_SIZE].copy())
             d1[-1][3] = d1[-1][3] + [y[k]]
             d1[-1][4] = p
+            # TODO
+            '''
             if VERBOSE:
                 m1.append(m0[k // BEAM_SIZE].copy())
                 m1[-1].append([tgt_vocab[x[3][-1]]] + dec.attn.Va[i][0].tolist())
+            '''
         for _, x in filter(lambda x: eos[j + x[0]], enumerate(d0)):
             d1.append(x)
+            if VERBOSE:
+                m1.append(m0[k // BEAM_SIZE].copy())
         d1 = sorted(d1, key = lambda x: x[4], reverse = True)[:BEAM_SIZE]
         for k, x in enumerate(d1):
             k += j
