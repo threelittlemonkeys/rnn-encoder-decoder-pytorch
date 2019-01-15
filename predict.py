@@ -32,7 +32,7 @@ def beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap):
     p, y = dec_out[:len(eos)].topk(BEAM_SIZE)
     p += Tensor([-10000 if b else a[4] for a, b in zip(data, eos)]).unsqueeze(1)
     if VERBOSE:
-        print("\nt = %d\nb =" % t)
+        print("t = %d" % t)
         for p0, y0 in zip(p, y):
             print([(round(p1.item(), 4), tgt_vocab[y1]) for p1, y1 in zip(p0, y0)])
     p = p.view(len(eos) // BEAM_SIZE, -1)
@@ -42,32 +42,24 @@ def beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap):
         y = y[:, :BEAM_SIZE]
     for i, (p, y) in enumerate(zip(p, y)):
         j = i * BEAM_SIZE
-        d0 = data[j:j + BEAM_SIZE]
-        d1 = []
-        if VERBOSE:
-            m0 = heatmap[j:j + BEAM_SIZE]
-            m1 = []
+        d1, m1 = [], [] # data and heatmap to be updated
         for p, k in zip(*p.topk(BEAM_SIZE)):
-            d1.append(d0[k // BEAM_SIZE].copy())
+            d1.append(data[j + k // BEAM_SIZE].copy())
             d1[-1][3] = d1[-1][3] + [y[k]]
             d1[-1][4] = p
-            # TODO
-            '''
             if VERBOSE:
-                m1.append(m0[k // BEAM_SIZE].copy())
-                m1[-1].append([tgt_vocab[x[3][-1]]] + dec.attn.Va[i][0].tolist())
-            '''
-        for _, x in filter(lambda x: eos[j + x[0]], enumerate(d0)):
-            d1.append(x)
+                m1.append(heatmap[j + k // BEAM_SIZE].copy())
+                m1[-1].append([tgt_vocab[y[k]]] + dec.attn.Va[i][0].tolist())
+        for k in filter(lambda x: eos[j + x], range(BEAM_SIZE)):
+            d1.append(data[j + k])
             if VERBOSE:
-                m1.append(m0[k // BEAM_SIZE].copy())
-        d1 = sorted(d1, key = lambda x: x[4], reverse = True)[:BEAM_SIZE]
-        for k, x in enumerate(d1):
-            k += j
-            data[k] = x
-            eos[k] = x[3][-1] == EOS_IDX
+                m1.append(heatmap[j + k // BEAM_SIZE])
+        x = sorted(zip(d1, m1), key = lambda x: x[0][4], reverse = True)[:BEAM_SIZE]
+        for k, (a, b) in enumerate(x):
+            data[j + k] = a
+            eos[j + k] = a[3][-1] == EOS_IDX
             if VERBOSE:
-                heatmap[k].append([tgt_vocab[x[3][-1]]] + dec.attn.Va[i][0].tolist())
+                heatmap[j + k] = b
         if VERBOSE:
             print("y[%d] =" % i)
             for x in d1:
