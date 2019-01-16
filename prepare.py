@@ -26,7 +26,7 @@ def load_data():
                 tgt_vocab[w] = len(tgt_vocab)
             tgt_seq.append(str(tgt_vocab[w]))
         data.append((src_seq, tgt_seq))
-    data.sort(key = lambda x: len(x[0]), reverse = True) # sort by source sequence length
+    data.sort(key = lambda x: -len(x[0])) # sort by source sequence length
     fo.close()
     return data, src_vocab, tgt_vocab
 
