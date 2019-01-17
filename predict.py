@@ -23,8 +23,7 @@ def greedy_search(dec, tgt_vocab, data, eos, dec_out, heatmap):
         data[i][3].append(y[i])
         data[i][4] += p[i]
         eos[i] = y[i] == EOS_IDX
-        if VERBOSE:
-            heatmap[i].append([tgt_vocab[y[i]]] + dec.attn.Va[i][0].tolist())
+        heatmap[i].append([tgt_vocab[y[i]]] + dec.attn.Va[i][0].tolist())
     return dec_in
 
 def beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap):
@@ -43,18 +42,16 @@ def beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap):
             for k in range(0, len(p), BEAM_SIZE):
                 for a, b in zip(y[k:k + BEAM_SIZE], p[k:k + BEAM_SIZE]):
                     print(((tgt_vocab[a]), round(b.item(), 4)), end = ", ")
-                print()
+                print("\n")
         for p, k in zip(*p.topk(BEAM_SIZE)):
             d1.append(data[j + k // BEAM_SIZE].copy())
             d1[-1][3] = d1[-1][3] + [y[k]]
             d1[-1][4] = p
-            if VERBOSE:
-                m1.append(heatmap[j + k // BEAM_SIZE].copy())
-                m1[-1].append([tgt_vocab[y[k]]] + dec.attn.Va[i][0].tolist())
+            m1.append(heatmap[j + k // BEAM_SIZE].copy())
+            m1[-1].append([tgt_vocab[y[k]]] + dec.attn.Va[i][0].tolist())
         for k in filter(lambda x: eos[j + x], range(BEAM_SIZE)):
             d1.append(data[j + k])
-            if VERBOSE:
-                m1.append(heatmap[j + k])
+            m1.append(heatmap[j + k])
         if VERBOSE:
             print("output[%d][%d] =" % (t, i))
         x = sorted(zip(d1, m1), key = lambda x: -x[0][4])[:BEAM_SIZE]
@@ -62,8 +59,8 @@ def beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap):
             k += j
             data[k] = a
             eos[k] = a[3][-1] == EOS_IDX
+            heatmap[k] = b
             if VERBOSE:
-                heatmap[k] = b
                 print([tgt_vocab[x] for x in a[3]] + [round(a[4].item(), 4)])
         if VERBOSE:
             print()
@@ -85,7 +82,7 @@ def run_model(enc, dec, tgt_vocab, data):
     dec.hidden = enc.hidden
     if dec.feed_input:
         dec.attn.hidden = zeros(BATCH_SIZE, 1, HIDDEN_SIZE)
-    heatmap = [[[""] + x[1] + [EOS]] for x in data[:len(eos)]] if VERBOSE else None
+    heatmap = [[[""] + x[1] + [EOS]] for x in data[:len(eos)]]
     while sum(eos) < len(eos) and t < MAX_LEN:
         dec_out = dec(dec_in, enc_out, t, mask)
         if BEAM_SIZE == 1:
@@ -98,6 +95,7 @@ def run_model(enc, dec, tgt_vocab, data):
         for i in range(len(heatmap)):
             print("heatmap[%d] =" % i)
             print(mat2csv(heatmap[i], rh = True))
+    data = [x for i, x in enumerate(data) if not i % BEAM_SIZE]
     return [(x[1], [tgt_vocab[x] for x in x[3][:-1]], x[4].item()) for x in data]
 
 def predict():
