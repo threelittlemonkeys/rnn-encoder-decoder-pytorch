@@ -93,6 +93,8 @@ def run_model(enc, dec, tgt_vocab, data):
     data, heatmap = zip(*sorted(zip(data, heatmap), key = lambda x: (x[0][0], -x[0][4])))
     if VERBOSE >= 1:
         for i in range(len(heatmap)):
+            if VERBOSE < 2 and i % BEAM_SIZE:
+                continue
             print("heatmap[%d] =" % i)
             print(mat2csv(heatmap[i], rh = True))
     data = [x for i, x in enumerate(data) if not i % BEAM_SIZE]
