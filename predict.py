@@ -37,7 +37,7 @@ def beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap):
     for i, (p, y) in enumerate(zip(p, y)):
         j = i * BEAM_SIZE
         d1, m1 = [], [] # data and heatmap to be updated
-        if VERBOSE:
+        if VERBOSE >= 2:
             print("beam[%d][%d] =" % (t, i))
             for k in range(0, len(p), BEAM_SIZE):
                 for a, b in zip(y[k:k + BEAM_SIZE], p[k:k + BEAM_SIZE]):
@@ -52,7 +52,7 @@ def beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap):
         for k in filter(lambda x: eos[j + x], range(BEAM_SIZE)):
             d1.append(data[j + k])
             m1.append(heatmap[j + k])
-        if VERBOSE:
+        if VERBOSE >= 2:
             print("output[%d][%d] =" % (t, i))
         x = sorted(zip(d1, m1), key = lambda x: -x[0][4])[:BEAM_SIZE]
         for k, (a, b) in enumerate(x):
@@ -60,9 +60,9 @@ def beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap):
             data[k] = a
             eos[k] = a[3][-1] == EOS_IDX
             heatmap[k] = b
-            if VERBOSE:
+            if VERBOSE >= 2:
                 print([tgt_vocab[x] for x in a[3]] + [round(a[4].item(), 4)])
-        if VERBOSE:
+        if VERBOSE >= 2:
             print()
     dec_in = [x[3][-1] if len(x[3]) else SOS_IDX for x in data]
     dec_in = LongTensor(dec_in).unsqueeze(1)
@@ -91,7 +91,7 @@ def run_model(enc, dec, tgt_vocab, data):
             dec_in = beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap)
         t += 1
     data, heatmap = zip(*sorted(zip(data, heatmap), key = lambda x: (x[0][0], -x[0][4])))
-    if VERBOSE:
+    if VERBOSE >= 1:
         for i in range(len(heatmap)):
             print("heatmap[%d] =" % i)
             print(mat2csv(heatmap[i], rh = True))
@@ -117,6 +117,9 @@ def predict():
         result.extend(run_model(enc, dec, tgt_vocab, data))
     for x in result:
         print(x)
+        # a = " ".join([re.sub("/[^/]+$", "", x) for x in x[0]])
+        # b = " ".join([re.sub("/[^/]+$", "", x) for x in x[1]])
+        # print("%s\t%s" % (a, b))
 
 if __name__ == "__main__":
     if len(sys.argv) != 5:
