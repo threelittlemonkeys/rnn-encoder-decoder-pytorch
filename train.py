@@ -46,8 +46,8 @@ def train():
     data, src_vocab, tgt_vocab = load_data()
     enc = encoder(len(src_vocab))
     dec = decoder(len(tgt_vocab))
-    enc_optim = torch.optim.SGD(enc.parameters(), lr = LEARNING_RATE, weight_decay = WEIGHT_DECAY)
-    dec_optim = torch.optim.SGD(dec.parameters(), lr = LEARNING_RATE, weight_decay = WEIGHT_DECAY)
+    enc_optim = torch.optim.Adam(enc.parameters(), lr = LEARNING_RATE)
+    dec_optim = torch.optim.Adam(dec.parameters(), lr = LEARNING_RATE)
     epoch = load_checkpoint(sys.argv[1], enc, dec) if isfile(sys.argv[1]) else 0
     filename = re.sub("\.epoch[0-9]+$", "", sys.argv[1])
     print(enc)
