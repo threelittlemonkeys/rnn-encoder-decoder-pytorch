@@ -14,7 +14,7 @@ BIDIRECTIONAL = True
 NUM_DIRS = 2 if BIDIRECTIONAL else 1
 LEARNING_RATE = 1e-4
 BEAM_SIZE = 3
-VERBOSE = 1 # 0: None, 1: attention heatmap, 2: beam search
+VERBOSE = 0 # 0: None, 1: attention heatmap, 2: beam search
 SAVE_EVERY = 10
 
 PAD = "<PAD>" # padding

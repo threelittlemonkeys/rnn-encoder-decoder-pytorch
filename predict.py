@@ -119,9 +119,6 @@ def predict():
         result.extend(run_model(enc, dec, tgt_vocab, data))
     for x in result:
         print(x)
-        # a = " ".join([re.sub("/[^/]+$", "", x) for x in x[0]])
-        # b = " ".join([re.sub("/[^/]+$", "", x) for x in x[1]])
-        # print("%s\t%s" % (a, b))
 
 if __name__ == "__main__":
     if len(sys.argv) != 5:
