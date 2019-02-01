@@ -44,19 +44,19 @@ def beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap):
                     print(((tgt_vocab[a]), round(b.item(), 4)), end = ", ")
                 print("\n")
         for p, k in zip(*p.topk(BEAM_SIZE)):
-            d1.append(data[j + k // BEAM_SIZE].copy())
+            q = j + k // BEAM_SIZE
+            d1.append(data[q].copy())
             d1[-1][3] = d1[-1][3] + [y[k]]
             d1[-1][4] = p
-            m1.append(heatmap[j + k // BEAM_SIZE].copy())
-            m1[-1].append([tgt_vocab[y[k]]] + dec.attn.Va[i][0].tolist())
+            m1.append(heatmap[q].copy())
+            m1[-1].append([tgt_vocab[y[k]]] + dec.attn.Va[q][0].tolist())
         for k in filter(lambda x: eos[j + x], range(BEAM_SIZE)):
             d1.append(data[j + k])
             m1.append(heatmap[j + k])
         if VERBOSE >= 2:
             print("output[%d][%d] =" % (t, i))
         x = sorted(zip(d1, m1), key = lambda x: -x[0][4])[:BEAM_SIZE]
-        for k, (a, b) in enumerate(x):
-            k += j
+        for k, (a, b) in enumerate(x, j):
             data[k] = a
             eos[k] = a[3][-1] == EOS_IDX
             heatmap[k] = b
@@ -118,7 +118,10 @@ def predict():
     if len(data):
         result.extend(run_model(enc, dec, tgt_vocab, data))
     for x in result:
-        print(x)
+        # print(x)
+        a = " ".join([re.sub("/[^/]+$", "", x) for x in x[0]])
+        b = " ".join([re.sub("/[^/]+$", "", x) for x in x[1]])
+        print("%s\t%s" % (a, b))
 
 if __name__ == "__main__":
     if len(sys.argv) != 5:
