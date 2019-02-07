@@ -49,7 +49,7 @@ def beam_search(dec, tgt_vocab, data, t, eos, dec_out, heatmap):
             d1[-1][3] = d1[-1][3] + [y[k]]
             d1[-1][4] = p
             m1.append(heatmap[q].copy())
-            m1[-1].append([tgt_vocab[y[k]]] + dec.attn.Va[q][0].tolist())
+            m1[-1].append([tgt_vocab[y[k]]] + dec.attn.Va[q][0][:len(data[j][1]) + 1].tolist())
         for k in filter(lambda x: eos[j + x], range(BEAM_SIZE)):
             d1.append(data[j + k])
             m1.append(heatmap[j + k])
