@@ -44,7 +44,7 @@ Kyunghyun Cho, Bart van Merrienboer, Caglar Gulcehre, Dzmitry Bahdanau, Fethi Bo
 
 Jiatao Gu, Zhengdong Lu, Hang Li, Victor O.K. Li. 2016. [Incorporating Copying Mechanism in Sequence-to-Sequence Learning.](https://arxiv.org/abs/1603.06393) arXiv:1603.06393.
 
-Jiwei Li. 2017. [Teaching Machines to Converse.](https://github.com/jiweil/Jiwei-Thesis/blob/master/thesis.pdf) Doctoral dissertation.
+Jiwei Li. 2017. [Teaching Machines to Converse.](https://github.com/jiweil/Jiwei-Thesis/blob/master/thesis.pdf) Doctoral dissertation. Stanford University.
 
 Junyang Lin, Xu Sun, Xuancheng Ren, Muyu Li, Qi Su. 2018. [Learning When to Concentrate or Divert Attention: Self-Adaptive Attention Temperature for Neural Machine Translation.](https://arxiv.org/abs/1808.07374) arXiv:1808.07374.
 
