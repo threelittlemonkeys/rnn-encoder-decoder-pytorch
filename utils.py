@@ -12,7 +12,6 @@ def normalize(x):
 def tokenize(x, unit):
     x = normalize(x)
     if unit == "char":
-        # x = re.sub(" ", "", x)
         return list(x)
     if unit == "word":
         return x.split(" ")
