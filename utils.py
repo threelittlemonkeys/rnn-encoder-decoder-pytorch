@@ -1,5 +1,9 @@
+import sys
 import re
-from model import *
+from time import time
+from os.path import isfile
+from parameters import *
+from collections import defaultdict
 
 def normalize(x):
     # x = re.sub("[^ ,.?!a-zA-Z0-9\u3131-\u318E\uAC00-\uD7A3]+", " ", x)
@@ -16,8 +20,14 @@ def tokenize(x, unit):
     if unit == "word":
         return x.split(" ")
 
-def load_vocab(filename, ext):
-    print("loading vocab.%s..." % ext)
+def save_data(filename, data):
+    fo = open(filename, "w")
+    for seq in data:
+        fo.write(" ".join(seq[0]) + "\t" + " ".join(seq[1]) + "\n")
+    fo.close()
+
+def load_vocab(filename):
+    print("loading %s..." % filename)
     vocab = {}
     fo = open(filename)
     for line in fo:
@@ -25,6 +35,12 @@ def load_vocab(filename, ext):
         vocab[line] = len(vocab)
     fo.close()
     return vocab
+
+def save_vocab(filename, vocab):
+    fo = open(filename, "w")
+    for w, _ in sorted(vocab.items(), key = lambda x: x[1]):
+        fo.write("%s\n" % w)
+    fo.close()
 
 def load_checkpoint(filename, enc = None, dec = None):
     print("loading model...")
@@ -49,6 +65,30 @@ def save_checkpoint(filename, enc, dec, epoch, loss, time):
         checkpoint["loss"] = loss
         torch.save(checkpoint, filename + ".epoch%d" % epoch)
         print("saved model at epoch %d" % epoch)
+
+def cudify(f):
+    return lambda *x: f(*x).cuda() if CUDA else f(*x)
+
+Tensor = cudify(torch.Tensor)
+LongTensor = cudify(torch.LongTensor)
+zeros = cudify(torch.zeros)
+
+def batchify(bxc, bxw, sos = False, eos = False, minlen = 0):
+    bxw_len = max(minlen, max(len(x) for x in bxw))
+    if bxc:
+        bxc_len = max(minlen, max(len(w) for x in bxc for w in x))
+        pad = [[PAD_IDX] * (bxc_len + 2)]
+        bxc = [[[SOS_IDX, *w, EOS_IDX, *[PAD_IDX] * (bxc_len - len(w))] for w in x] for x in bxc]
+        bxc = [(pad if sos else []) + x + (pad * (bxw_len - len(x) + eos)) for x in bxc]
+        bxc = LongTensor(bxc)
+    sos = [SOS_IDX] if sos else []
+    eos = [EOS_IDX] if eos else []
+    bxw = [sos + list(x) + eos + [PAD_IDX] * (bxw_len - len(x)) for x in bxw]
+    return bxc, LongTensor(bxw)
+
+def maskset(x):
+    mask = x.data.eq(PAD_IDX)
+    return (mask, x.size(1) - mask.sum(1)) # set of mask and lengths
 
 def mat2csv(m, ch = True, rh = False, nd = 4, delim ="\t"):
     f = "%%.%df" % nd

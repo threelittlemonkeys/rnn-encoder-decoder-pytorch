@@ -1,65 +1,37 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-UNIT = "word" # unit of tokenization (char, word)
-MIN_LEN = 1 # minimum sequence length for training
-MAX_LEN = 50 # maximum sequence length for training and decoding
-BATCH_SIZE = 64 * 3 # must be divisible by BEAM_SIZE at inference time
-EMBED_SIZE = 300
-HIDDEN_SIZE = 1000
-NUM_LAYERS = 2
-DROPOUT = 0.5
-BIDIRECTIONAL = True
-NUM_DIRS = 2 if BIDIRECTIONAL else 1
-LEARNING_RATE = 1e-4
-BEAM_SIZE = 3
-VERBOSE = 0 # 0: None, 1: attention heatmap, 2: beam search
-SAVE_EVERY = 10
-
-PAD = "<PAD>" # padding
-EOS = "<EOS>" # end of sequence
-SOS = "<SOS>" # start of sequence
-UNK = "<UNK>" # unknown token
-
-PAD_IDX = 0
-SOS_IDX = 1
-EOS_IDX = 2
-UNK_IDX = 3
-
-torch.manual_seed(1)
-CUDA = torch.cuda.is_available()
-assert BATCH_SIZE % BEAM_SIZE == 0
+from utils import *
+from embedding import embed
 
 class encoder(nn.Module):
     def __init__(self, vocab_size):
         super().__init__()
 
         # architecture
-        self.embed = nn.Embedding(vocab_size, EMBED_SIZE, padding_idx = PAD_IDX)
-        self.rnn = nn.GRU( # LSTM or GRU
-            input_size = EMBED_SIZE,
+        self.embed = embed(-1, vocab_size)
+        self.rnn = getattr(nn, RNN_TYPE)(
+            input_size = sum(EMBED.values()),
             hidden_size = HIDDEN_SIZE // NUM_DIRS,
             num_layers = NUM_LAYERS,
             bias = True,
             batch_first = True,
             dropout = DROPOUT,
-            bidirectional = BIDIRECTIONAL
+            bidirectional = (NUM_DIRS == 2)
         )
 
         if CUDA:
             self = self.cuda()
 
-    def init_hidden(self, rnn_type): # initialize hidden states
-        h = zeros(NUM_LAYERS * NUM_DIRS, BATCH_SIZE, HIDDEN_SIZE // NUM_DIRS) # hidden states
-        if rnn_type == "LSTM":
-            c = zeros(NUM_LAYERS * NUM_DIRS, BATCH_SIZE, HIDDEN_SIZE // NUM_DIRS) # cell states
-            return (h, c)
-        return h
+    def init_state(self): # initialize the cell state
+        args = [NUM_LAYERS * NUM_DIRS, BATCH_SIZE, HIDDEN_SIZE // NUM_DIRS]
+        hs = zeros(*args) # hidden state
+        if RNN_TYPE == "GRU":
+            return hs
+        cs = zeros(*args) # cell state
+        return (hs, cs)
+
 
     def forward(self, x, mask):
-        self.hidden = self.init_hidden("GRU") # LSTM or GRU
-        x = self.embed(x)
+        self.hidden = self.init_state()
+        x = self.embed(None, x)
         x = nn.utils.rnn.pack_padded_sequence(x, mask[1], batch_first = True)
         h, _ = self.rnn(x, self.hidden)
         h, _ = nn.utils.rnn.pad_packed_sequence(h, batch_first = True)
@@ -71,15 +43,15 @@ class decoder(nn.Module):
         self.feed_input = True # input feeding
 
         # architecture
-        self.embed = nn.Embedding(vocab_size, EMBED_SIZE, padding_idx = PAD_IDX)
-        self.rnn = nn.GRU( # LSTM or GRU
-            input_size = EMBED_SIZE + (HIDDEN_SIZE if self.feed_input else 0),
+        self.embed = embed(-1, vocab_size)
+        self.rnn = getattr(nn, RNN_TYPE)(
+            input_size = sum(EMBED.values()) + (HIDDEN_SIZE if self.feed_input else 0),
             hidden_size = HIDDEN_SIZE // NUM_DIRS,
             num_layers = NUM_LAYERS,
             bias = True,
             batch_first = True,
             dropout = DROPOUT,
-            bidirectional = BIDIRECTIONAL
+            bidirectional = (NUM_DIRS == 2)
         )
         self.attn = attn()
         self.out = nn.Linear(HIDDEN_SIZE, vocab_size)
@@ -89,7 +61,7 @@ class decoder(nn.Module):
             self = self.cuda()
 
     def forward(self, dec_in, enc_out, t, mask):
-        x = self.embed(dec_in)
+        x = self.embed(None, dec_in)
         if self.feed_input:
             x = torch.cat((x, self.attn.hidden), 2)
         h, _ = self.rnn(x, self.hidden)
@@ -177,19 +149,3 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
         h = torch.cat((c, ht), 2)
         self.hidden = torch.tanh(self.Wc(h)) # attentional vector
         return self.hidden
-
-def Tensor(*args):
-    x = torch.Tensor(*args)
-    return x.cuda() if CUDA else x
-
-def LongTensor(*args):
-    x = torch.LongTensor(*args)
-    return x.cuda() if CUDA else x
-
-def zeros(*args):
-    x = torch.zeros(*args)
-    return x.cuda() if CUDA else x
-
-def maskset(x):
-    mask = x.data.eq(PAD_IDX)
-    return (mask, x.size(1) - mask.sum(1)) # set of mask and lengths

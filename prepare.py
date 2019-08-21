@@ -1,6 +1,4 @@
-import sys
-from model import *
-from utils import tokenize
+from utils import *
 
 def load_data():
     data = []
@@ -30,22 +28,10 @@ def load_data():
     data.sort(key = lambda x: -len(x[0])) # sort by source sequence length
     return data, src_vocab, tgt_vocab
 
-def save_data(data):
-    fo = open(sys.argv[1] + ".csv", "w")
-    for seq in data:
-        fo.write(" ".join(seq[0]) + "\t" + " ".join(seq[1]) + "\n")
-    fo.close()
-
-def save_vocab(vocab, ext):
-    fo = open(sys.argv[1] + ".vocab." + ext, "w")
-    for w, _ in sorted(vocab.items(), key = lambda x: x[1]):
-        fo.write("%s\n" % w)
-    fo.close()
-
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         sys.exit("Usage: %s training_data" % sys.argv[0])
-    data, src_vocab, tgt_vocab= load_data()
-    save_data(data)
-    save_vocab(src_vocab, "src")
-    save_vocab(tgt_vocab, "tgt")
+    data, src_vocab, tgt_vocab = load_data()
+    save_data(sys.argv[1] + ".csv", data)
+    save_vocab(sys.argv[1] + ".vocab.src", src_vocab)
+    save_vocab(sys.argv[1] + ".vocab.tgt", tgt_vocab)
