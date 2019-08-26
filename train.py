@@ -55,7 +55,7 @@ def train():
             dec_in = LongTensor([SOS_IDX] * BATCH_SIZE).unsqueeze(1)
             dec.hidden = enc.hidden
             if dec.feed_input:
-                dec.attn.hidden = zeros(BATCH_SIZE, 1, HIDDEN_SIZE)
+                dec.attn.h = zeros(BATCH_SIZE, 1, HIDDEN_SIZE)
             for t in range(y.size(1)):
                 dec_out = dec(dec_in, enc_out, t, mask)
                 loss += F.nll_loss(dec_out, y[:, t], ignore_index = PAD_IDX, reduction = "sum")

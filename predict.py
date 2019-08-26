@@ -21,7 +21,7 @@ def greedy_search(dec, tgt_vocab, batch, eos, dec_out, heatmap):
         batch[i][3].append(y[i])
         batch[i][4] += p[i]
         eos[i] = (y[i] == EOS_IDX)
-        heatmap[i].append([tgt_vocab[y[i]]] + dec.attn.Va[i][0].tolist())
+        heatmap[i].append([tgt_vocab[y[i]]] + dec.attn.a[i][0].tolist())
     return dec_in
 
 def beam_search(dec, tgt_vocab, batch, t, eos, dec_out, heatmap):
@@ -47,7 +47,7 @@ def beam_search(dec, tgt_vocab, batch, t, eos, dec_out, heatmap):
             b1[-1][3] = b1[-1][3] + [y[k]]
             b1[-1][4] = p
             m1.append(heatmap[q].copy())
-            m1[-1].append([tgt_vocab[y[k]]] + dec.attn.Va[q][0][:len(batch[j][1]) + 1].tolist())
+            m1[-1].append([tgt_vocab[y[k]]] + dec.attn.a[q][0][:len(batch[j][1]) + 1].tolist())
         for k in filter(lambda x: eos[j + x], range(BEAM_SIZE)):
             b1.append(batch[j + k])
             m1.append(heatmap[j + k])
@@ -78,7 +78,7 @@ def run_model(enc, dec, tgt_vocab, batch):
     dec_in = LongTensor([SOS_IDX] * BATCH_SIZE).unsqueeze(1)
     dec.hidden = enc.hidden
     if dec.feed_input:
-        dec.attn.hidden = zeros(BATCH_SIZE, 1, HIDDEN_SIZE)
+        dec.attn.h = zeros(BATCH_SIZE, 1, HIDDEN_SIZE)
     heatmap = [[[""] + x[1] + [EOS]] for x in batch[:len(eos)]]
     while sum(eos) < len(eos) and t < MAX_LEN:
         dec_out = dec(dec_in, enc_out, t, mask)

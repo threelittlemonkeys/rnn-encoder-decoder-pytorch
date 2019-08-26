@@ -63,7 +63,7 @@ class decoder(nn.Module):
     def forward(self, dec_in, enc_out, t, mask):
         x = self.embed(None, dec_in)
         if self.feed_input:
-            x = torch.cat((x, self.attn.hidden), 2)
+            x = torch.cat((x, self.attn.h), 2)
         h, _ = self.rnn(x, self.hidden)
         if self.attn:
             h = self.attn(h, enc_out, t, mask)
@@ -76,8 +76,8 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
         super().__init__()
         self.type = "global" # global, local-m, local-p
         self.method = "dot" # dot, general, concat
-        self.hidden = None # attentional hidden state for input feeding
-        self.Va = None # attention weights
+        self.a = None # attention weights (for heatmap)
+        self.h = None # attentional vector (for input feeding)
 
         # architecture
         if self.type[:5] == "local":
@@ -92,11 +92,11 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
         self.softmax = nn.Softmax(2)
         self.Wc = nn.Linear(HIDDEN_SIZE * 2, HIDDEN_SIZE)
 
-    def window(self, ht, hs, t, mask): # for local attention
+    def window(self, ht, hs, t, mask): # TODO for local attention
         if self.type[-1] == "m": # monotonic
             p0 = max(0, min(t - self.window_size, hs.size(1) - self.window_size))
             p1 = min(hs.size(1), t + 1 + self.window_size)
-            return hs[:, p0:p1], mask[0][:, p0:p1]
+            return hs[:, p0:p1], mask[0][:, p0:p1], None
         if self.type[-1] == "p": # predicative
             S = Tensor(mask[1]) # source sequence length
             pt = S * torch.sigmoid(self.Vp(torch.tanh(self.Wp(ht)))).view(-1) # aligned position
@@ -120,7 +120,7 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
             hs_w = torch.cat(hs_w).view(BATCH_SIZE, -1, HIDDEN_SIZE)
             mask_w = torch.cat(mask_w).view(BATCH_SIZE, -1)
             k = torch.cat(k).view(BATCH_SIZE, 1, -1)
-            return hs_w, mask_w, pt, k
+            return hs_w, mask_w, k
 
     def align(self, ht, hs, mask, k):
         if self.method == "dot":
@@ -133,19 +133,15 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
         a = self.softmax(a) # [B, 1, H] @ [B, H, L] = [B, 1, L]
         if self.type == "local-p":
             a = a * k
-        return a # alignment weights
+        return a # alignment vector as attention weights
 
     def forward(self, ht, hs, t, mask):
-        if self.type == "local-p":
-            hs, mask, pt, k = self.window(ht, hs, t, mask)
+        if self.type in ("local-m", "local-p"):
+            hs, mask, k = self.window(ht, hs, t, mask)
         else:
-            if self.type == "local-m":
-                hs, mask = self.window(ht, hs, t, mask)
-            else:
-                mask = mask[0]
             k = None
-        a = self.Va = self.align(ht, hs, mask, k) # alignment vector
+            mask = mask[0]
+        a = self.a = self.align(ht, hs, mask, k)
         c = a.bmm(hs) # context vector [B, 1, L] @ [B, L, H] = [B, 1, H]
-        h = torch.cat((c, ht), 2)
-        self.hidden = torch.tanh(self.Wc(h)) # attentional vector
-        return self.hidden
+        h = self.h = torch.tanh(self.Wc(torch.cat((c, ht), 2)))
+        return h # attentional vector as attentional hiodden state
