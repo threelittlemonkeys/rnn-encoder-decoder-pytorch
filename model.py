@@ -77,7 +77,7 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
         self.type = "global" # global, local-m, local-p
         self.method = "dot" # dot, general, concat
         self.a = None # attention weights (for heatmap)
-        self.h = None # attentional vector (for input feeding)
+        self.h = None # attention vector (for input feeding)
 
         # architecture
         if self.type[:5] == "local":
@@ -144,4 +144,4 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
         a = self.a = self.align(ht, hs, mask, k)
         c = a.bmm(hs) # context vector [B, 1, L] @ [B, L, H] = [B, 1, H]
         h = self.h = torch.tanh(self.Wc(torch.cat((c, ht), 2)))
-        return h # attentional vector as attentional hiodden state
+        return h # attention vector as attentional hidden state
