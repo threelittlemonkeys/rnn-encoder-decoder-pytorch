@@ -5,12 +5,10 @@ def load_model():
     src_vocab = load_vocab(sys.argv[2])
     tgt_vocab = load_vocab(sys.argv[3])
     tgt_vocab = [x for x, _ in sorted(tgt_vocab.items(), key = lambda x: x[1])]
-    enc = encoder(len(src_vocab))
-    dec = decoder(len(tgt_vocab))
-    print(enc)
-    print(dec)
-    load_checkpoint(sys.argv[1], enc, dec)
-    return enc, dec, src_vocab, tgt_vocab
+    model = rnn_enc_dec(len(src_vocab), len(tgt_vocab))
+    print(model)
+    load_checkpoint(sys.argv[1], model)
+    return model, src_vocab, tgt_vocab
 
 def greedy_search(dec, tgt_vocab, batch, eos, dec_out, heatmap):
     p, dec_in = dec_out.topk(1)
@@ -66,26 +64,26 @@ def beam_search(dec, tgt_vocab, batch, t, eos, dec_out, heatmap):
     dec_in = LongTensor(dec_in).unsqueeze(1)
     return dec_in
 
-def run_model(enc, dec, tgt_vocab, batch):
+def run_model(model, tgt_vocab, batch):
     t = 0
     eos = [False for _ in batch] # number of completed sequences in the batch
     while len(batch) < BATCH_SIZE:
         batch.append([-1, [], [EOS_IDX], [], 0])
     batch.sort(key = lambda x: -len(x[2]))
-    _, bxw = batchify(None, [x[2] for x in batch], eos = True)
-    mask = maskset(bxw)
-    enc_out = enc(bxw, mask)
+    _, bx = batchify(None, [x[2] for x in batch], eos = True)
+    mask = maskset(bx)
+    enc_out = model.enc(bx, mask)
     dec_in = LongTensor([SOS_IDX] * BATCH_SIZE).unsqueeze(1)
-    dec.hidden = enc.hidden
-    if dec.feed_input:
-        dec.attn.h = zeros(BATCH_SIZE, 1, HIDDEN_SIZE)
+    model.dec.hidden = model.enc.hidden
+    if model.dec.feed_input:
+        model.dec.attn.h = zeros(BATCH_SIZE, 1, HIDDEN_SIZE)
     heatmap = [[[""] + x[1] + [EOS]] for x in batch[:len(eos)]]
     while sum(eos) < len(eos) and t < MAX_LEN:
-        dec_out = dec(dec_in, enc_out, t, mask)
+        dec_out = model.dec(dec_in, enc_out, t, mask)
         if BEAM_SIZE == 1:
-            dec_in = greedy_search(dec, tgt_vocab, batch, eos, dec_out, heatmap)
+            dec_in = greedy_search(model.dec, tgt_vocab, batch, eos, dec_out, heatmap)
         else:
-            dec_in = beam_search(dec, tgt_vocab, batch, t, eos, dec_out, heatmap)
+            dec_in = beam_search(model.dec, tgt_vocab, batch, t, eos, dec_out, heatmap)
         t += 1
     batch, heatmap = zip(*sorted(zip(batch, heatmap), key = lambda x: (x[0][0], -x[0][4])))
     if VERBOSE >= 1:
@@ -97,7 +95,7 @@ def run_model(enc, dec, tgt_vocab, batch):
     batch = [x for i, x in enumerate(batch) if not i % BEAM_SIZE]
     return [(x[1], [tgt_vocab[x] for x in x[3][:-1]], x[4].item()) for x in batch]
 
-def predict(filename, enc, dec, src_vocab, tgt_vocab):
+def predict(filename, model, src_vocab, tgt_vocab):
     data = []
     result = []
     fo = open(filename)
@@ -107,11 +105,10 @@ def predict(filename, enc, dec, src_vocab, tgt_vocab):
         data.extend([[idx, tkn, x, [], 0] for _ in range(BEAM_SIZE)])
     fo.close()
     with torch.no_grad():
-        enc.eval()
-        dec.eval()
+        model.eval()
         for i in range(0, len(data), BATCH_SIZE):
             batch = data[i:i + BATCH_SIZE]
-            for y in run_model(enc, dec, tgt_vocab, batch):
+            for y in run_model(model, tgt_vocab, batch):
                 yield y
 
 if __name__ == "__main__":

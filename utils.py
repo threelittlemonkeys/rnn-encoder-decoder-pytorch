@@ -42,25 +42,24 @@ def save_vocab(filename, vocab):
         fo.write("%s\n" % w)
     fo.close()
 
-def load_checkpoint(filename, enc = None, dec = None):
+def load_checkpoint(filename, model = None):
     print("loading model...")
     checkpoint = torch.load(filename)
-    if enc:
-        enc.load_state_dict(checkpoint["encoder_state_dict"])
-    if dec:
-        dec.load_state_dict(checkpoint["decoder_state_dict"])
+    if model:
+        model.enc.load_state_dict(checkpoint["encoder_state_dict"])
+        model.dec.load_state_dict(checkpoint["decoder_state_dict"])
     epoch = checkpoint["epoch"]
     loss = checkpoint["loss"]
     print("saved model: epoch = %d, loss = %f" % (checkpoint["epoch"], checkpoint["loss"]))
     return epoch
 
-def save_checkpoint(filename, enc, dec, epoch, loss, time):
+def save_checkpoint(filename, model, epoch, loss, time):
     print("epoch = %d, loss = %f, time = %f" % (epoch, loss, time))
-    if filename and enc and dec:
+    if filename and model:
         print("saving model...")
         checkpoint = {}
-        checkpoint["encoder_state_dict"] = enc.state_dict()
-        checkpoint["decoder_state_dict"] = dec.state_dict()
+        checkpoint["encoder_state_dict"] = model.enc.state_dict()
+        checkpoint["decoder_state_dict"] = model.dec.state_dict()
         checkpoint["epoch"] = epoch
         checkpoint["loss"] = loss
         torch.save(checkpoint, filename + ".epoch%d" % epoch)

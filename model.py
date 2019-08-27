@@ -1,6 +1,35 @@
 from utils import *
 from embedding import embed
 
+class rnn_enc_dec(nn.Module):
+    def __init__(self, src_vocab_size, tgt_vocab_size):
+        super().__init__()
+
+        # architecture
+        self.enc = encoder(src_vocab_size)
+        self.dec = decoder(tgt_vocab_size)
+        self.loss = nn.NLLLoss(ignore_index = PAD_IDX, reduction = "sum")
+        self = self.cuda() if CUDA else self
+
+    def forward(self, x, y): # for training
+        loss = 0
+        self.zero_grad()
+        mask = maskset(x)
+        enc_out = self.enc(x, mask)
+        dec_in = LongTensor([SOS_IDX] * BATCH_SIZE).unsqueeze(1)
+        self.dec.hidden = self.enc.hidden
+        if self.dec.feed_input:
+            self.dec.attn.h = zeros(BATCH_SIZE, 1, HIDDEN_SIZE)
+        for t in range(y.size(1)):
+            dec_out = self.dec(dec_in, enc_out, t, mask)
+            loss += self.loss(dec_out, y[:, t])
+            dec_in = y[:, t].unsqueeze(1) # teacher forcing
+        loss /= y.data.gt(0).sum().float() # divide by the number of unpadded tokens
+        return loss
+
+    def decode(self, x): # for inference
+        pass
+
 class encoder(nn.Module):
     def __init__(self, vocab_size):
         super().__init__()
@@ -16,9 +45,6 @@ class encoder(nn.Module):
             dropout = DROPOUT,
             bidirectional = (NUM_DIRS == 2)
         )
-
-        if CUDA:
-            self = self.cuda()
 
     def init_state(self): # initialize RNN states
         args = (NUM_LAYERS * NUM_DIRS, BATCH_SIZE, HIDDEN_SIZE // NUM_DIRS)
@@ -56,9 +82,6 @@ class decoder(nn.Module):
         self.attn = attn()
         self.out = nn.Linear(HIDDEN_SIZE, vocab_size)
         self.softmax = nn.LogSoftmax(1)
-
-        if CUDA:
-            self = self.cuda()
 
     def forward(self, dec_in, enc_out, t, mask):
         x = self.embed(None, dec_in)
