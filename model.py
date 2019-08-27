@@ -8,7 +8,6 @@ class rnn_enc_dec(nn.Module):
         # architecture
         self.enc = encoder(src_vocab_size)
         self.dec = decoder(tgt_vocab_size)
-        self.loss = nn.NLLLoss(ignore_index = PAD_IDX, reduction = "sum")
         self = self.cuda() if CUDA else self
 
     def forward(self, x, y): # for training
@@ -22,7 +21,7 @@ class rnn_enc_dec(nn.Module):
             self.dec.attn.h = zeros(BATCH_SIZE, 1, HIDDEN_SIZE)
         for t in range(y.size(1)):
             dec_out = self.dec(dec_in, enc_out, t, mask)
-            loss += self.loss(dec_out, y[:, t])
+            loss += F.nll_loss(dec_out, y[:, t], ignore_index = PAD_IDX, reduction = "sum")
             dec_in = y[:, t].unsqueeze(1) # teacher forcing
         loss /= y.data.gt(0).sum().float() # divide by the number of unpadded tokens
         return loss
