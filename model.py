@@ -163,7 +163,9 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
         else:
             k = None
             mask = mask[0]
-        a = self.a = self.align(ht, hs, mask, k)
+        a = self.align(ht, hs, mask, k)
         c = a.bmm(hs) # context vector [B, 1, L] @ [B, L, H] = [B, 1, H]
-        h = self.h = torch.tanh(self.Wc(torch.cat((c, ht), 2)))
+        h = torch.tanh(self.Wc(torch.cat((c, ht), 2)))
+        self.a = a
+        self.h = h
         return h # attention vector as attentional hidden state
