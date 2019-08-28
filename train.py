@@ -36,7 +36,7 @@ def train():
     enc_optim = torch.optim.Adam(model.enc.parameters(), lr = LEARNING_RATE)
     dec_optim = torch.optim.Adam(model.dec.parameters(), lr = LEARNING_RATE)
     print(model)
-    epoch = load_checkpoint(sys.argv[1], enc, dec) if isfile(sys.argv[1]) else 0
+    epoch = load_checkpoint(sys.argv[1], model) if isfile(sys.argv[1]) else 0
     filename = re.sub("\.epoch[0-9]+$", "", sys.argv[1])
     print("training model...")
     for ei in range(epoch + 1, epoch + num_epochs + 1):
