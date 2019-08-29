@@ -86,7 +86,7 @@ def batchify(bxc, bxw, sos = False, eos = False, minlen = 0):
     return bxc, LongTensor(bxw)
 
 def maskset(x):
-    mask = x.data.eq(PAD_IDX)
+    mask = x.eq(PAD_IDX)
     return (mask, x.size(1) - mask.sum(1)) # set of mask and lengths
 
 def mat2csv(m, ch = True, rh = False, nd = 4, delim ="\t"):

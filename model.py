@@ -24,7 +24,7 @@ class rnn_enc_dec(nn.Module):
             loss += F.nll_loss(dec_out, y[:, t], ignore_index = PAD_IDX)
             dec_in = y[:, t].unsqueeze(1) # teacher forcing
         loss /= y.size(1) # divide by senquence length
-        # loss /= y.data.gt(0).sum().float() # divide by the number of unpadded tokens
+        # loss /= y.gt(0).sum().float() # divide by the number of unpadded tokens
         return loss
 
     def decode(self, x): # for inference
