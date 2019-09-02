@@ -10,7 +10,7 @@ def load_model():
     load_checkpoint(sys.argv[1], model)
     return model, src_vocab, tgt_vocab
 
-def greedy_search(dec, tgt_vocab, batch, eos, dec_out, heatmap):
+def greedy_search(dec, itw, batch, eos, dec_out, heatmap):
     p, dec_in = dec_out.topk(1)
     y = dec_in.view(-1).tolist()
     for i in range(len(eos)):
@@ -19,45 +19,45 @@ def greedy_search(dec, tgt_vocab, batch, eos, dec_out, heatmap):
         batch[i][3].append(y[i])
         batch[i][4] += p[i]
         eos[i] = (y[i] == EOS_IDX)
-        heatmap[i].append([tgt_vocab[y[i]]] + dec.attn.a[i][0].tolist())
+        heatmap[i].append([itw[y[i]]] + dec.attn.a[i][0].tolist())
     return dec_in
 
-def beam_search(dec, tgt_vocab, batch, t, eos, dec_out, heatmap):
+def beam_search(dec, itw, batch, t, eos, dec_out, heatmap):
     p, y = dec_out[:len(eos)].topk(BEAM_SIZE)
     p += Tensor([-10000 if b else a[4] for a, b in zip(batch, eos)]).unsqueeze(1)
-    p = p.view(len(eos) // BEAM_SIZE, -1)
-    y = y.view(len(eos) // BEAM_SIZE, -1)
-    if t == 0:
+    p = p.view(-1, BEAM_SIZE ** 2)
+    y = y.view(-1, BEAM_SIZE ** 2)
+    if t == 0: # remove duplicates
         p = p[:, :BEAM_SIZE]
         y = y[:, :BEAM_SIZE]
     for i, (p, y) in enumerate(zip(p, y)):
         j = i * BEAM_SIZE
         b1, m1 = [], [] # batch and heatmap to be updated
         if VERBOSE >= 2:
-            print("beam[%d][%d] =" % (t, i))
+            print("beam[%d][%d] =" % (i, t))
             for k in range(0, len(p), BEAM_SIZE):
-                for a, b in zip(y[k:k + BEAM_SIZE], p[k:k + BEAM_SIZE]):
-                    print(((tgt_vocab[a]), round(b.item(), 4)), end = ", ")
-                print("\n")
+                for a, b in list(zip(y, p))[k:k + BEAM_SIZE]:
+                    print(((itw[a]), round(b.item(), 4)), end = ", ")
+                print()
         for p, k in zip(*p.topk(BEAM_SIZE)):
             q = j + k // BEAM_SIZE
             b1.append(batch[q].copy())
             b1[-1][3] = b1[-1][3] + [y[k]]
             b1[-1][4] = p
             m1.append(heatmap[q].copy())
-            m1[-1].append([tgt_vocab[y[k]]] + dec.attn.a[q][0][:len(batch[j][1]) + 1].tolist())
+            m1[-1].append([itw[y[k]]] + dec.attn.a[q][0][:len(batch[j][1]) + 1].tolist())
         for k in filter(lambda x: eos[j + x], range(BEAM_SIZE)):
             b1.append(batch[j + k])
             m1.append(heatmap[j + k])
         if VERBOSE >= 2:
-            print("output[%d][%d] =" % (t, i))
+            print("output[%d][%d] =" % (i, t))
         x = sorted(zip(b1, m1), key = lambda x: -x[0][4])[:BEAM_SIZE]
         for k, (a, b) in enumerate(x, j):
             batch[k] = a
             eos[k] = (a[3][-1] == EOS_IDX)
             heatmap[k] = b
             if VERBOSE >= 2:
-                print([tgt_vocab[x] for x in a[3]] + [round(a[4].item(), 4)])
+                print([itw[x] for x in a[3]] + [round(a[4].item(), 4)])
         if VERBOSE >= 2:
             print()
     dec_in = [x[3][-1] if len(x[3]) else SOS_IDX for x in batch]
