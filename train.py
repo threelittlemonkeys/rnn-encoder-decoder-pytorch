@@ -8,7 +8,7 @@ def load_data():
     by = [] # target sequence batch
     src_vocab = load_vocab(sys.argv[2])
     tgt_vocab = load_vocab(sys.argv[3])
-    print("loading %s" % sys.argv[4])
+    print("loading %s..." % sys.argv[4])
     fo = open(sys.argv[4], "r")
     for line in fo:
         x, y = line.strip().split("\t")

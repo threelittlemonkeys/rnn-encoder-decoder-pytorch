@@ -8,8 +8,9 @@ Supported features:
 - Global and local attention (Luong et al 2015)
 - Vectorized computation of alignment scores in the attention layer
 - Input feeding (Luong et al 2015)
-- Beam search decoding
 - CopyNet (Gu et al 2016)
+- Beam search decoding
+- Attention visualization
 
 ## Usage
 
