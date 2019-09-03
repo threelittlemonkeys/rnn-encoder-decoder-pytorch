@@ -27,7 +27,7 @@ def beam_search(dec, itw, batch, t, eos, dec_out, heatmap):
     bp += Tensor([-10000 if b else a[4] for a, b in zip(batch, eos)]).unsqueeze(1) # update
     bp = bp.view(-1, BEAM_SIZE ** 2) # [B, BEAM_SIZE * BEAM_SIZE]
     by = by.view(-1, BEAM_SIZE ** 2)
-    if t == 0: # remove duplicates
+    if t == 0: # remove non-first duplicate beams
         bp = bp[:, :BEAM_SIZE]
         by = by[:, :BEAM_SIZE]
     for i, (p, y) in enumerate(zip(bp, by)): # for each sequence
@@ -60,9 +60,7 @@ def beam_search(dec, itw, batch, t, eos, dec_out, heatmap):
                 print(([itw[x] for x in b1[3]], round(b1[4].item(), 4)))
     if VERBOSE >= 2:
         print()
-    dec_in = [next(reversed(seq[3]), SOS_IDX) for seq in batch]
-    dec_in = LongTensor(dec_in).unsqueeze(1)
-    return dec_in
+    return LongTensor([next(reversed(x[3]), SOS_IDX) for x in batch]).unsqueeze(1)
 
 def run_model(model, tgt_vocab, batch):
     t = 0
