@@ -44,7 +44,7 @@ def train():
         timer = time()
         for x, y in data:
             loss = model(x, y) # forward pass and compute loss
-            loss.backward() # compute loss
+            loss.backward() # compute gradients
             enc_optim.step() # update encoder parameters
             dec_optim.step() # update decoder parameters
             loss_sum += loss.item()
