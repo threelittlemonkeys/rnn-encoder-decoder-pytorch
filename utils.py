@@ -95,6 +95,6 @@ def mat2csv(m, ch = True, rh = False, nd = 4, delim ="\t"):
         csv = delim.join([x for x in m[0]]) + "\n" # source sequence
     for row in m[ch:]:
         if rh: # row header
-            csv += row[0] + delim # target sequence
+            csv += str(row[0]) + delim # target sequence
         csv += delim.join([f % x for x in row[rh:]]) + "\n"
     return csv

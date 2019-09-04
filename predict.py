@@ -58,8 +58,8 @@ def beam_search(dec, itw, batch, t, eos, dec_out, heatmap):
             if VERBOSE >= 2:
                 print("output[%d][%d][%d] = " % (i, t, k), end = "")
                 print(([itw[x] for x in b1[3]], round(b1[4].item(), 4)))
-    if VERBOSE >= 2:
-        print()
+        if VERBOSE >= 2:
+            print()
     return LongTensor([next(reversed(x[3]), SOS_IDX) for x in batch]).unsqueeze(1)
 
 def run_model(model, tgt_vocab, batch):
