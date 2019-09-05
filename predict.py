@@ -10,7 +10,7 @@ def load_model():
     load_checkpoint(sys.argv[1], model)
     return model, src_vocab, tgt_vocab
 
-def greedy_search(dec, itw, batch, eos, dec_out, heatmap):
+def greedy_search(dec, dec_out, itw, batch, eos, heatmap):
     p, dec_in = dec_out.topk(1)
     y = dec_in.view(-1).tolist()
     for i in range(len(eos)):
@@ -22,7 +22,7 @@ def greedy_search(dec, itw, batch, eos, dec_out, heatmap):
         heatmap[i].append([itw[y[i]]] + dec.attn.a[i][0].tolist())
     return dec_in
 
-def beam_search(dec, itw, batch, t, eos, dec_out, heatmap):
+def beam_search(dec, dec_out, itw, batch, eos, heatmap, t):
     bp, by = dec_out[:len(eos)].topk(BEAM_SIZE) # [B * BEAM_SIZE, BEAM_SIZE]
     bp += Tensor([-10000 if b else a[4] for a, b in zip(batch, eos)]).unsqueeze(1) # update
     bp = bp.view(-1, BEAM_SIZE ** 2) # [B, BEAM_SIZE * BEAM_SIZE]
@@ -79,9 +79,9 @@ def run_model(model, tgt_vocab, batch):
     while sum(eos) < len(eos) and t < MAX_LEN:
         dec_out = model.dec(dec_in, enc_out, t, mask)
         if BEAM_SIZE == 1:
-            dec_in = greedy_search(model.dec, tgt_vocab, batch, eos, dec_out, heatmap)
+            dec_in = greedy_search(model.dec, dec_out, tgt_vocab, batch, eos, heatmap)
         else:
-            dec_in = beam_search(model.dec, tgt_vocab, batch, t, eos, dec_out, heatmap)
+            dec_in = beam_search(model.dec, dec_out, tgt_vocab, batch, eos, heatmap, t)
         t += 1
     batch, heatmap = zip(*sorted(zip(batch, heatmap), key = lambda x: (x[0][0], -x[0][4])))
     if VERBOSE >= 1:
