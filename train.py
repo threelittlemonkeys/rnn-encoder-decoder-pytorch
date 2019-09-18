@@ -1,6 +1,6 @@
 from model import *
 from utils import *
-# from evaluate import *
+# from evaluate import * # TODO
 
 def load_data():
     bx = [] # source sequence batch
