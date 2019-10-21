@@ -1,8 +1,9 @@
 from utils import *
 
 class embed(nn.Module):
-    def __init__(self, char_vocab_size, word_vocab_size):
+    def __init__(self, char_vocab_size, word_vocab_size, hre = False):
         super().__init__()
+        self.hre = hre
 
         # architecture
         for model, dim in EMBED.items():
@@ -14,14 +15,19 @@ class embed(nn.Module):
                 self.word_embed = nn.Embedding(word_vocab_size, dim, padding_idx = PAD_IDX)
             elif model == "sae":
                 self.word_embed = self.sae(word_vocab_size, dim)
-
-        if CUDA:
-            self = self.cuda()
+        if self.hre: # hierarchical recurrent encoding
+            self.sent_embed = self.rnn(EMBED_SIZE, EMBED_SIZE, True)
+        self = self.cuda() if CUDA else self
 
     def forward(self, xc, xw):
-        hc = self.char_embed(xc) if "char-cnn" in EMBED or "char-rnn" in EMBED else None
-        hw = self.word_embed(xw) if "lookup" in EMBED or "sae" in EMBED else None
+        hc, hw = None, None
+        if "char-cnn" in EMBED or "char-rnn" in EMBED:
+            hc = self.char_embed(xc)
+        if "lookup" in EMBED or "sae" in EMBED:
+            hw = self.word_embed(xw)
         h = torch.cat([h for h in [hc, hw] if type(h) == torch.Tensor], 2)
+        if self.hre:
+            h = self.sent_embed(h) if self.hre else h
         return h
 
     class cnn(nn.Module):
@@ -42,7 +48,8 @@ class embed(nn.Module):
             self.fc = nn.Linear(len(kernel_sizes) * num_featmaps, embed_size)
 
         def forward(self, x):
-            x = x.view(-1, x.size(2)) # [batch_size (B) * word_seq_len (Lw), char_seq_len (Lc)]
+            b = x.size(0) # batch_size (B)
+            x = x.view(-1, x.size(2)) # [B * word_seq_len (Lw), char_seq_len (Lc)]
             x = self.embed(x) # [B * Lw, Lc, dim (H)]
             x = x.unsqueeze(1) # [B * Lw, Ci, Lc, W]
             h = [conv(x) for conv in self.conv] # [B * Lw, Co, Lc, 1] * K
@@ -51,16 +58,17 @@ class embed(nn.Module):
             h = torch.cat(h, 1) # [B * Lw, Co * K]
             h = self.dropout(h)
             h = self.fc(h) # fully connected layer [B * Lw, embed_size]
-            h = h.view(BATCH_SIZE, -1, h.size(1)) # [B, Lw, embed_size]
+            h = h.view(b, -1, h.size(1)) # [B, Lw, embed_size]
             return h
 
     class rnn(nn.Module):
-        def __init__(self, vocab_size, embed_size):
+        def __init__(self, vocab_size, embed_size, embedded = False):
             super().__init__()
             self.dim = embed_size
             self.rnn_type = "GRU" # LSTM, GRU
             self.num_dirs = 2 # unidirectional: 1, bidirectional: 2
             self.num_layers = 2
+            self.embedded = embedded # True: sent_embed, False: word_embed
 
             # architecture
             self.embed = nn.Embedding(vocab_size, embed_size, padding_idx = PAD_IDX)
@@ -71,7 +79,7 @@ class embed(nn.Module):
                 bias = True,
                 batch_first = True,
                 dropout = DROPOUT,
-                bidirectional = self.num_dirs == 2
+                bidirectional = (self.num_dirs == 2)
             )
 
         def init_state(self, b): # initialize RNN states
@@ -84,16 +92,18 @@ class embed(nn.Module):
             return hs
 
         def forward(self, x):
-            s = self.init_state(x.size(0) * x.size(1))
-            x = x.view(-1, x.size(2)) # [batch_size (B) * word_seq_len (Lw), char_seq_len (Lc)]
-            x = self.embed(x) # [B * Lw, Lc, embed_size (H)]
+            b = x.size(0) # batch_size (B)
+            s = self.init_state(b * (1 if self.embedded else x.size(1)))
+            if not self.embedded: # word_embed
+                x = x.view(-1, x.size(2)) # [B * word_seq_len (Lw), char_seq_len (Lc)]
+                x = self.embed(x) # [B * Lw, Lc, embed_size (H)]
             h, s = self.rnn(x, s)
             h = s if self.rnn_type == "GRU" else s[-1]
             h = torch.cat([x for x in h[-self.num_dirs:]], 1) # final hidden state [B * Lw, H]
-            h = h.view(BATCH_SIZE, -1, h.size(1)) # [B, Lw, H]
+            h = h.view(b, -1, h.size(1)) # [B, Lw, H]
             return h
 
-    class sae(nn.Module): # self attentive encoder
+    class sae(nn.Module): # self-attentive encoder
         def __init__(self, vocab_size, embed_size = 512):
             super().__init__()
             dim = embed_size
@@ -115,7 +125,7 @@ class embed(nn.Module):
         @staticmethod
         def maskset(x): # set of mask and lengths
             mask = x.eq(PAD_IDX)
-            return (mask.view(BATCH_SIZE, 1, 1, -1), x.size(1) - mask.sum(1))
+            return (mask.view(x.size(0), 1, 1, -1), x.size(1) - mask.sum(1))
 
         @staticmethod
         def pos_encoding(dim, maxlen = 1000): # positional encoding
@@ -164,12 +174,13 @@ class embed(nn.Module):
                 return a # attention weights
 
             def forward(self, q, k, v, mask):
+                b = x.size(0) # batch_size (B)
                 x = q # identity
-                q = self.Wq(q).view(BATCH_SIZE, -1, self.H, self.Dk).transpose(1, 2)
-                k = self.Wk(k).view(BATCH_SIZE, -1, self.H, self.Dk).transpose(1, 2)
-                v = self.Wv(v).view(BATCH_SIZE, -1, self.H, self.Dv).transpose(1, 2)
+                q = self.Wq(q).view(b, -1, self.H, self.Dk).transpose(1, 2)
+                k = self.Wk(k).view(b, -1, self.H, self.Dk).transpose(1, 2)
+                v = self.Wv(v).view(b, -1, self.H, self.Dv).transpose(1, 2)
                 z = self.attn_sdp(q, k, v, mask)
-                z = z.transpose(1, 2).contiguous().view(BATCH_SIZE, -1, self.H * self.Dv)
+                z = z.transpose(1, 2).contiguous().view(b, -1, self.H * self.Dv)
                 z = self.Wo(z)
                 z = self.norm(x + self.dropout(z)) # residual connection and dropout
                 return z
