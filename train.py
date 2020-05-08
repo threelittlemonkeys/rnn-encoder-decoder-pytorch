@@ -1,37 +1,36 @@
 from model import *
 from utils import *
-# from evaluate import * # TODO
+from dataloader import *
 
 def load_data():
-    bx = [] # source sequence batch
-    by = [] # target sequence batch
-    data = []
-    src_vocab = load_vocab(sys.argv[2])
-    tgt_vocab = load_vocab(sys.argv[3])
-    print("loading %s..." % sys.argv[4])
-    fo = open(sys.argv[4], "r")
+    data = dataloader()
+    batch = []
+    x_cti = load_tkn_to_idx(sys.argv[2]) # source char_to_idx
+    x_wti = load_tkn_to_idx(sys.argv[3]) # source word_to_idx
+    y_wti = load_tkn_to_idx(sys.argv[4]) # target word_to_idx
+    print("loading %s..." % sys.argv[5])
+    fo = open(sys.argv[5])
     for line in fo:
         x, y = line.strip().split("\t")
-        x = [int(i) for i in x.split(" ")]
-        y = [int(i) for i in y.split(" ")]
-        bx.append(x)
-        by.append(y)
-        if len(by) == BATCH_SIZE:
-            _, bx = batchify(None, bx, eos = True)
-            _, by = batchify(None, by, eos = True)
-            data.append((bx, by))
-            bx = []
-            by = []
+        x = [x.split(":") for x in x.split(" ")]
+        y = [int(x) for x in y.split(" ")]
+        xc, xw = zip(*[(list(map(int, xc.split("+"))), int(xw)) for xc, xw in x])
+        data.append_item(xc = xc, xw = xw, y0 = y)
+        data.append_row()
     fo.close()
-    print("data size: %d" % (len(data) * BATCH_SIZE))
+    data.strip()
+    for _batch in data.split():
+        xc, xw = data.tensor(*_batch.sort(), eos = True)
+        _, y0 = data.tensor(None, _batch.y0, eos = True)
+        batch.append((xc, xw, y0))
+    print("data size: %d" % (len(data.y0)))
     print("batch size: %d" % BATCH_SIZE)
-    return data, src_vocab, tgt_vocab
+    return batch, x_cti, x_wti, y_wti
 
 def train():
-    print("cuda: %s" % CUDA)
-    num_epochs = int(sys.argv[5])
-    data, src_vocab, tgt_vocab = load_data()
-    model = rnn_enc_dec(len(src_vocab), len(tgt_vocab))
+    num_epochs = int(sys.argv[-1])
+    batch, x_cti, x_wti, y_wti = load_data()
+    model = rnn_encoder_decoder(len(x_cti), len(x_wti), len(y_wti))
     enc_optim = torch.optim.Adam(model.enc.parameters(), lr = LEARNING_RATE)
     dec_optim = torch.optim.Adam(model.dec.parameters(), lr = LEARNING_RATE)
     print(model)
@@ -41,20 +40,20 @@ def train():
     for ei in range(epoch + 1, epoch + num_epochs + 1):
         loss_sum = 0
         timer = time()
-        for x, y in data:
-            loss = model(x, y) # forward pass and compute loss
+        for xc, xw, y0 in batch:
+            loss = model(xc, xw, y0) # forward pass and compute loss
             loss.backward() # compute gradients
             enc_optim.step() # update encoder parameters
             dec_optim.step() # update decoder parameters
             loss_sum += loss.item()
         timer = time() - timer
-        loss_sum /= len(data)
+        loss_sum /= len(batch)
         if ei % SAVE_EVERY and ei != epoch + num_epochs:
             save_checkpoint("", None, ei, loss_sum, timer)
         else:
             save_checkpoint(filename, model, ei, loss_sum, timer)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 6:
-        sys.exit("Usage: %s model vocab.src vocab.tgt training_data num_epoch" % sys.argv[0])
+    if len(sys.argv) != 7:
+        sys.exit("Usage: %s model vocab.src.char_to_idx vocab.src.word_to_idx vocab.tgt.word_to_idx training_data num_epoch" % sys.argv[0])
     train()

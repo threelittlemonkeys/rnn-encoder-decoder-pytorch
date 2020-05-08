@@ -10,12 +10,14 @@ RNN_TYPE = "LSTM" # LSTM or GRU
 NUM_DIRS = 2 # unidirectional: 1, bidirectional: 2
 NUM_LAYERS = 2
 BATCH_SIZE = 64 * 3 # BATCH_SIZE * BEAM_SIZE
-EMBED = {"lookup": 300} # embeddings (char-cnn, char-rnn, lookup, sae)
+HRE = False # (UNIT == "sent") # hierarchical recurrent encoding
+ENC_EMBED = {"lookup": 300} # encoder embedding (char-cnn, char-rnn, lookup, sae)
+DEC_EMBED = {"lookup": 300} # decoder embedding (lookup only)
 HIDDEN_SIZE = 1000
 DROPOUT = 0.5
-LEARNING_RATE = 1e-4
-BEAM_SIZE = 3
-VERBOSE = 2 # 0: None, 1: attention heatmap, 2: beam search
+LEARNING_RATE = 2e-4
+BEAM_SIZE = 1
+VERBOSE = 0 # 0: None, 1: attention heatmap, 2: beam search
 EVAL_EVERY = 10
 SAVE_EVERY = 10
 
@@ -31,5 +33,11 @@ UNK_IDX = 3
 
 CUDA = torch.cuda.is_available()
 torch.manual_seed(0) # for reproducibility
+# torch.cuda.set_device(0)
 
+Tensor = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
+LongTensor = torch.cuda.LongTensor if CUDA else torch.LongTensor
+zeros = lambda *x: torch.zeros(*x).cuda() if CUDA else torch.zeros
+
+NUM_DIGITS = 4 # number of decimal places to print
 assert BATCH_SIZE % BEAM_SIZE == 0

@@ -1,29 +1,33 @@
 from utils import *
 
 class embed(nn.Module):
-    def __init__(self, char_vocab_size, word_vocab_size, hre = False):
+    def __init__(self, ls, cti_size, wti_size, hre = False):
         super().__init__()
-        self.hre = hre
+        self.ls = ls # embedding module list
+        self.dim = sum(ls.values())
+        self.hre = hre # hierarchical recurrent encoding
 
         # architecture
-        for model, dim in EMBED.items():
-            if model == "char-cnn":
-                self.char_embed = self.cnn(char_vocab_size, dim)
-            elif model == "char-rnn":
-                self.char_embed = self.rnn(char_vocab_size, dim)
-            if model == "lookup":
-                self.word_embed = nn.Embedding(word_vocab_size, dim, padding_idx = PAD_IDX)
-            elif model == "sae":
-                self.word_embed = self.sae(word_vocab_size, dim)
-        if self.hre: # hierarchical recurrent encoding
-            self.sent_embed = self.rnn(EMBED_SIZE, EMBED_SIZE, True)
+        for model, dim in self.ls.items():
+            if cti_size > 0:
+                if model == "char-cnn":
+                    self.char_embed = self.cnn(cti_size, dim)
+                elif model == "char-rnn":
+                    self.char_embed = self.rnn(cti_size, dim)
+            if wti_size > 0:
+                if model == "lookup":
+                    self.word_embed = nn.Embedding(wti_size, dim, padding_idx = PAD_IDX)
+                elif model == "sae":
+                    self.word_embed = self.sae(wti_size, dim)
+        if self.hre:
+            self.sent_embed = self.rnn(self.dim, self.dim, True)
         self = self.cuda() if CUDA else self
 
     def forward(self, xc, xw):
         hc, hw = None, None
-        if "char-cnn" in EMBED or "char-rnn" in EMBED:
+        if type(xc) == torch.Tensor and ("char-cnn" in self.ls or "char-rnn" in self.ls):
             hc = self.char_embed(xc)
-        if "lookup" in EMBED or "sae" in EMBED:
+        if type(xw) == torch.Tensor and ("lookup" in self.ls or "sae" in self.ls):
             hw = self.word_embed(xw)
         h = torch.cat([h for h in [hc, hw] if type(h) == torch.Tensor], 2)
         if self.hre:
@@ -50,7 +54,7 @@ class embed(nn.Module):
         def forward(self, x):
             b = x.size(0) # batch_size (B)
             x = x.view(-1, x.size(2)) # [B * word_seq_len (Lw), char_seq_len (Lc)]
-            x = self.embed(x) # [B * Lw, Lc, dim (H)]
+            x = self.embed(x) # [B * Lw, Lc, dim]
             x = x.unsqueeze(1) # [B * Lw, Ci, Lc, W]
             h = [conv(x) for conv in self.conv] # [B * Lw, Co, Lc, 1] * K
             h = [F.relu(k).squeeze(3) for k in h] # [B * Lw, Co, Lc] * K
@@ -115,17 +119,12 @@ class embed(nn.Module):
             self.layers = nn.ModuleList([self.layer(dim) for _ in range(num_layers)])
 
         def forward(self, x):
-            mask = self.maskset(x)
+            mask = x.eq(PAD_IDX).view(x.size(0), 1, 1, -1)
             x = self.embed(x)
             h = x + self.pe[:x.size(1)]
             for layer in self.layers:
-                h = layer(h, mask[0])
+                h = layer(h, mask)
             return h
-
-        @staticmethod
-        def maskset(x): # set of mask and lengths
-            mask = x.eq(PAD_IDX)
-            return (mask.view(x.size(0), 1, 1, -1), x.size(1) - mask.sum(1))
 
         @staticmethod
         def pos_encoding(dim, maxlen = 1000): # positional encoding
@@ -174,7 +173,7 @@ class embed(nn.Module):
                 return a # attention weights
 
             def forward(self, q, k, v, mask):
-                b = x.size(0) # batch_size (B)
+                b = q.size(0) # batch_size (B)
                 x = q # identity
                 q = self.Wq(q).view(b, -1, self.H, self.Dk).transpose(1, 2)
                 k = self.Wk(k).view(b, -1, self.H, self.Dk).transpose(1, 2)

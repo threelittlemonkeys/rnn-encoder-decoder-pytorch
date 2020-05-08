@@ -2,36 +2,41 @@ from utils import *
 
 def load_data():
     data = []
-    src_vocab = {PAD: PAD_IDX, SOS: SOS_IDX, EOS: EOS_IDX, UNK: UNK_IDX}
-    tgt_vocab = {PAD: PAD_IDX, SOS: SOS_IDX, EOS: EOS_IDX, UNK: UNK_IDX}
+    x_cti = {PAD: PAD_IDX, SOS: SOS_IDX, EOS: EOS_IDX, UNK: UNK_IDX}
+    x_wti = {PAD: PAD_IDX, SOS: SOS_IDX, EOS: EOS_IDX, UNK: UNK_IDX}
+    y_wti = {PAD: PAD_IDX, SOS: SOS_IDX, EOS: EOS_IDX, UNK: UNK_IDX}
     fo = open(sys.argv[1])
     for line in fo:
-        src, tgt = line.split("\t")
-        src_tokens = tokenize(src, UNIT)
-        tgt_tokens = tokenize(tgt, UNIT)
-        if len(src_tokens) < MIN_LEN or len(src_tokens) > MAX_LEN:
+        x, y = line.split("\t")
+        x = tokenize(x, UNIT)
+        y = tokenize(y, UNIT)
+        if len(x) < MIN_LEN or len(x) > MAX_LEN:
             continue
-        if len(tgt_tokens) < MIN_LEN or len(tgt_tokens) > MAX_LEN:
+        if len(y) < MIN_LEN or len(y) > MAX_LEN:
             continue
         src_seq = []
         tgt_seq = []
-        for w in src_tokens:
-            if w not in src_vocab:
-                src_vocab[w] = len(src_vocab)
-            src_seq.append(str(src_vocab[w]))
-        for w in tgt_tokens:
-            if w not in tgt_vocab:
-                tgt_vocab[w] = len(tgt_vocab)
-            tgt_seq.append(str(tgt_vocab[w]))
-        data.append((src_seq, tgt_seq))
+        for w in x:
+            for c in w:
+                if c not in x_cti:
+                    x_cti[c] = len(x_cti)
+            if w not in x_wti:
+                x_wti[w] = len(x_wti)
+        for w in y:
+            if w not in y_wti:
+                y_wti[w] = len(y_wti)
+        x = ["+".join(str(x_cti[c]) for c in w) + ":%d" % x_wti[w] for w in x]
+        y = [str(y_wti[w]) for w in y]
+        data.append((x, y))
     fo.close()
     data.sort(key = lambda x: -len(x[0])) # sort by source sequence length
-    return data, src_vocab, tgt_vocab
+    return data, x_cti, x_wti, y_wti
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         sys.exit("Usage: %s training_data" % sys.argv[0])
-    data, src_vocab, tgt_vocab = load_data()
+    data, x_cti, x_wti, y_wti = load_data()
     save_data(sys.argv[1] + ".csv", data)
-    save_vocab(sys.argv[1] + ".vocab.src", src_vocab)
-    save_vocab(sys.argv[1] + ".vocab.tgt", tgt_vocab)
+    save_tkn_to_idx(sys.argv[1] + ".src.char_to_idx", x_cti)
+    save_tkn_to_idx(sys.argv[1] + ".src.word_to_idx", x_wti)
+    save_tkn_to_idx(sys.argv[1] + ".tgt.word_to_idx", y_wti)
