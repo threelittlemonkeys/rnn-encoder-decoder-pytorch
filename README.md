@@ -52,6 +52,8 @@ Junyang Lin, Xu Sun, Xuancheng Ren, Muyu Li, Qi Su. 2018. [Learning When to Conc
 
 Minh-Thang Luong, Hieu Pham, Christopher D. Manning. 2015. [Effective Approaches to Attention-based Neural Machine Translation.](https://arxiv.org/abs/1508.04025) arXiv:1507.04025.
 
+Chan Young Park, Yulia Tsvetkov. [Learning to Generate Word- and Phrase-Embeddings for Efficient Phrase-Based Neural Machine Translation.](https://www.aclweb.org/anthology/D19-5626.pdf) In Proceedings of the 3rd Workshop on Neural Generation and Translation.
+
 Sam Wiseman, Alexander M. Rush. [Sequence-to-Sequence Learning as Beam-Search Optimization.](https://arxiv.org/abs/1606.02960) arXiv:1606.02960.
 
 Yonghui Wu, Mike Schuster, Zhifeng Chen, Quoc V. Le, Mohammad Norouzi, Wolfgang Macherey, Maxim Krikun, Yuan Cao, Qin Gao, Klaus Macherey, Jeff Klingner, Apurva Shah, Melvin Johnson, Xiaobing Liu, Łukasz Kaiser, Stephan Gouws, Yoshikiyo Kato, Taku Kudo, Hideto Kazawa, Keith Stevens, George Kurian, Nishant Patil, Wei Wang, Cliff Young, Jason Smith, Jason Riesa, Alex Rudnick, Oriol Vinyals, Greg Corrado, Macduff Hughes, Jeffrey Dean. 2016. [Google's Neural Machine Translation System: Bridging the Gap between Human and Machine Translation.](https://arxiv.org/abs/1609.08144) arXiv:1609.08144.
