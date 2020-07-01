@@ -5,8 +5,7 @@ A minimal PyTorch implementation of RNN Encoder-Decoder for sequence to sequence
 Supported features:
 - Mini-batch training with CUDA
 - Lookup, CNNs, RNNs and/or self-attentive encoding in the embedding layer
-- Global and local attention (Luong et al 2015)
-- Vectorized computation of alignment scores in the attention layer
+- Attention mechanism (Luong et al 2015)
 - Input feeding (Luong et al 2015)
 - CopyNet, copying mechanism (Gu et al 2016)
 - Beam search decoding
