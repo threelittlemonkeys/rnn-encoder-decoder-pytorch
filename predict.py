@@ -21,7 +21,7 @@ def run_model(model, data, itw):
             b, t = len(xw), 0 # batch size, time step
             eos = [False for _ in xw] # EOS states
             mask, lens = maskset(xw)
-            model.dec.hs = model.enc(b, xc, xw, lens)
+            model.dec.M = model.enc(b, xc, xw, lens)
             model.dec.hidden = model.enc.hidden
             yi = LongTensor([[SOS_IDX]] * b)
             if model.dec.feed_input:

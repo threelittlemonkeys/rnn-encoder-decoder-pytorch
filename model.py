@@ -15,7 +15,7 @@ class rnn_encoder_decoder(nn.Module):
         loss = 0
         self.zero_grad()
         mask, lens = maskset(xw)
-        self.dec.hs = self.enc(b, xc, xw, lens)
+        self.dec.M = self.enc(b, xc, xw, lens)
         self.dec.hidden = self.enc.hidden
         yi = LongTensor([SOS_IDX] * b)
         if self.dec.feed_input:
@@ -34,7 +34,7 @@ class rnn_encoder_decoder(nn.Module):
 class encoder(nn.Module):
     def __init__(self, cti_size, wti_size):
         super().__init__()
-        self.hidden = None # encoder hidden state
+        self.hidden = None # encoder hidden states
 
         # architecture
         self.embed = embed(ENC_EMBED, cti_size, wti_size)
@@ -68,8 +68,8 @@ class encoder(nn.Module):
 class decoder(nn.Module):
     def __init__(self, wti_size):
         super().__init__()
-        self.hs = None # source hidden state
-        self.hidden = None # decoder hidden state
+        self.M = None # source hidden states
+        self.hidden = None # decoder hidden states
         self.feed_input = True # input feeding
 
         # architecture
@@ -93,7 +93,7 @@ class decoder(nn.Module):
             x = torch.cat((x, self.attn.v), 2)
         h, _ = self.rnn(x, self.hidden)
         if self.attn:
-            h = self.attn(h, self.hs, mask, t)
+            h = self.attn(h, self.M, mask, t)
         h = self.out(h).squeeze(1)
         y = self.softmax(h)
         return y
@@ -165,4 +165,4 @@ class attn(nn.Module): # attention layer (Luong et al 2015)
         self.w = self.align(ht, hs, mask, k)
         c = self.w.bmm(hs) # context vector [B, 1, L] @ [B, L, H] = [B, 1, H]
         self.v = torch.tanh(self.Wc(torch.cat((c, ht), 2)))
-        return self.v # attention vector as attentional hidden state
+        return self.v # attention vector
