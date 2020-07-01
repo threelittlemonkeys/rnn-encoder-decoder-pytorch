@@ -23,9 +23,8 @@ def run_model(model, data, itw):
             mask, lens = maskset(xw)
             model.dec.M = model.enc(b, xc, xw, lens)
             model.dec.hidden = model.enc.hidden
+            model.dec.attn.v = zeros(b, 1, HIDDEN_SIZE)
             yi = LongTensor([[SOS_IDX]] * b)
-            if model.dec.feed_input:
-                model.dec.attn.v = zeros(b, 1, HIDDEN_SIZE)
             batch.y1 = [[] for _ in range(b)]
             batch.prob = [Tensor([0]) for _ in range(b)]
             batch.attn = [[["", *batch.x1[i], EOS]] for i in batch.idx]
