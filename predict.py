@@ -23,13 +23,13 @@ def run_model(model, data, itw):
             mask, lens = maskset(xw)
             model.dec.M = model.enc(b, xc, xw, lens)
             model.dec.hidden = model.enc.hidden
-            model.dec.attn.v = zeros(b, 1, HIDDEN_SIZE)
+            model.dec.attn.Va = zeros(b, 1, HIDDEN_SIZE)
             yi = LongTensor([[SOS_IDX]] * b)
             batch.y1 = [[] for _ in range(b)]
             batch.prob = [Tensor([0]) for _ in range(b)]
             batch.attn = [[["", *batch.x1[i], EOS]] for i in batch.idx]
             while t < MAX_LEN and sum(eos) < len(eos):
-                yo = model.dec(yi, mask, t)
+                yo = model.dec(yi, mask)
                 args = (model.dec, batch, itw, eos, lens, yo)
                 yi = beam_search(*args, t) if BEAM_SIZE > 1 else greedy_search(*args)
                 t += 1

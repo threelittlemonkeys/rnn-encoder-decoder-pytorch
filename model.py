@@ -17,14 +17,13 @@ class rnn_encoder_decoder(nn.Module):
         mask, lens = maskset(xw)
         self.dec.M = self.enc(b, xc, xw, lens)
         self.dec.hidden = self.enc.hidden
-        self.dec.attn.v = zeros(b, 1, HIDDEN_SIZE)
+        self.dec.attn.Va = zeros(b, 1, HIDDEN_SIZE)
         yi = LongTensor([SOS_IDX] * b)
         for t in range(y0.size(1)):
-            yo = self.dec(yi.unsqueeze(1), mask, t)
+            yo = self.dec(yi.unsqueeze(1), mask)
             yi = y0[:, t] # teacher forcing
             loss += F.nll_loss(yo, yi, ignore_index = PAD_IDX)
         loss /= y0.size(1) # divide by senquence length
-        # loss /= y0.gt(0).sum().float() # divide by the number of unpadded tokens
         return loss
 
     def decode(self, x): # for inference
@@ -85,12 +84,11 @@ class decoder(nn.Module):
         self.out = nn.Linear(HIDDEN_SIZE, wti_size)
         self.softmax = nn.LogSoftmax(1)
 
-    def forward(self, y1, mask, t):
+    def forward(self, y1, mask):
         x = self.embed(None, y1)
-        x = torch.cat((x, self.attn.v), 2) # input feeding
+        x = torch.cat((x, self.attn.Va), 2) # input feeding
         h, _ = self.rnn(x, self.hidden)
-        if self.attn:
-            h = self.attn(h, self.M, mask, t)
+        h = self.attn(h, self.M, mask)
         h = self.out(h).squeeze(1)
         y = self.softmax(h)
         return y
@@ -98,20 +96,19 @@ class decoder(nn.Module):
 class attn(nn.Module):
     def __init__(self):
         super().__init__()
-        self.v = None # attention vector (for input feeding)
-        self.w = None # attention weights (for visualization)
 
         # architecture
-        self.softmax = nn.Softmax(2)
+        self.Wa = None # attention weights
         self.Wc = nn.Linear(HIDDEN_SIZE * 2, HIDDEN_SIZE)
+        self.Va = None # attention vector
 
     def align(self, ht, hs, mask):
-        a = ht.bmm(hs.transpose(1, 2)) # dot product [B, 1, H] @ [B, H, L] = [B, 1, L]
-        a = self.softmax(a.masked_fill(mask.unsqueeze(1), -10000))
-        return a # alignment vector as attention weights
+        a = ht.bmm(hs.transpose(1, 2)) # [B, 1, H] @ [B, H, L] = [B, 1, L]
+        a = F.softmax(a.masked_fill(mask.unsqueeze(1), -10000), 2)
+        return a # attention weights
 
-    def forward(self, ht, hs, mask, t):
-        self.w = self.align(ht, hs, mask)
-        c = self.w.bmm(hs) # context vector [B, 1, L] @ [B, L, H] = [B, 1, H]
-        self.v = torch.tanh(self.Wc(torch.cat((c, ht), 2)))
-        return self.v # attention vector
+    def forward(self, ht, hs, mask):
+        self.Wa = self.align(ht, hs, mask)
+        c = self.Wa.bmm(hs) # context vector [B, 1, L] @ [B, L, H] = [B, 1, H]
+        self.Va = torch.tanh(self.Wc(torch.cat((c, ht), 2)))
+        return self.Va # attention vector
