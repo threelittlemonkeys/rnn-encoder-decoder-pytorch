@@ -14,6 +14,7 @@ HRE = False # (UNIT == "sent") # hierarchical recurrent encoding
 ENC_EMBED = {"lookup": 300} # encoder embedding (char-cnn, char-rnn, lookup, sae)
 DEC_EMBED = {"lookup": 300} # decoder embedding (lookup only)
 HIDDEN_SIZE = 1000
+COPY = True # copying mechanism
 DROPOUT = 0.5
 LEARNING_RATE = 2e-4
 BEAM_SIZE = 1

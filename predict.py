@@ -16,7 +16,7 @@ def run_model(model, data, itw):
     with torch.no_grad():
         model.eval()
         for batch in data.split():
-            xc, xw, lens = batch.sort()
+            xc, xw, _, lens = batch.sort()
             xc, xw = data.tensor(xc, xw, lens, eos = True)
             b, t = len(xw), 0 # batch size, time step
             eos = [False for _ in xw] # EOS states

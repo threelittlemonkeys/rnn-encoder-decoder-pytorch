@@ -17,8 +17,9 @@ class data():
         self.idx.sort(key = lambda x: -len(self.xw[x]))
         xc = [self.xc[i] for i in self.idx]
         xw = [self.xw[i] for i in self.idx]
-        lens = [len(x) for x in (self.xw if HRE else xw)]
-        return xc, xw, lens
+        y0 = [self.y0[i] for i in self.idx]
+        lens = list(map(len, xw))
+        return xc, xw, y0, lens
 
     def unsort(self):
         self.idx = sorted(range(len(self.x0)), key = lambda x: self.idx[x])
@@ -65,9 +66,9 @@ class dataloader():
             batch = data()
             j = i + min(BATCH_SIZE, len(self.x0) - i)
             batch.x0 = self.x0[i:j]
-            batch.x1 = self.flatten(self.x1[i:j])
-            batch.xc = self.flatten(self.xc[i:j])
-            batch.xw = self.flatten(self.xw[i:j])
+            batch.x1 = self.x1[i:j] if HRE else self.flatten(self.x1[i:j])
+            batch.xc = self.xc[i:j] if HRE else self.flatten(self.xc[i:j])
+            batch.xw = self.xw[i:j] if HRE else self.flatten(self.xw[i:j])
             batch.y0 = self.y0[i:j]
             yield batch
 
@@ -80,13 +81,15 @@ class dataloader():
                 if sos:
                     _bc.append([[]])
                     _bw.append([])
-                _bc.extend(bc[i:i + j] + [[[]] for _ in range(d_len - j)])
-                _bw.extend(bw[i:i + j] + [[] for _ in range(d_len - j)])
+                _bc += self.flatten(bc[i:i + j])
+                _bw += self.flatten(bw[i:i + j])
+                _bc += [[[]] for _ in range(d_len - j)]
+                _bw += [[] for _ in range(d_len - j)]
                 if eos:
                     _bc.append([[]])
                     _bw.append([])
                 i += j
-            bc, bw = _bc, _bw
+            bc, bw = _bc, _bw # [B * Ld, ...]
         if bw:
             s_len = max(map(len, bw)) # sentence length (Ls)
             bw = [_s * sos + x + _e * eos + _p * (s_len - len(x)) for x in bw]
