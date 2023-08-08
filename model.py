@@ -68,6 +68,7 @@ class encoder(nn.Module):
         if RNN_TYPE == "GRU":
             return hs
         cs = zeros(n, b, h) # LSTM cell state
+
         return (hs, cs)
 
     def forward(self, xc, xw, lens):
@@ -77,6 +78,7 @@ class encoder(nn.Module):
         x = nn.utils.rnn.pack_padded_sequence(x, lens.cpu(), batch_first = True)
         h, s = self.rnn(x, s)
         h, _ = nn.utils.rnn.pad_packed_sequence(h, batch_first = True)
+
         return h, s
 
 class decoder(nn.Module):

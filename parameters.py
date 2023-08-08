@@ -13,7 +13,7 @@ RNN_TYPE = "GRU" # GRU, LSTM
 NUM_DIRS = 2 # number of directions (1: unidirectional, 2: bidirectional)
 NUM_LAYERS = 2
 HRE = False # (UNIT == "sent") # hierarchical recurrent encoding
-ENC_EMBED = {"lookup": 50} # encoder embedding (char-cnn, char-rnn, lookup, sae)
+ENC_EMBED = {"lookup": 50} # encoder embedding (cnn, rnn, lookup, sae)
 DEC_EMBED = {"lookup": 50} # decoder embedding (lookup only)
 HIDDEN_SIZE = 300
 DROPOUT = 0.5

@@ -14,6 +14,7 @@ class embed(nn.Module):
 
         for model, dim in ls.items():
             assert model in ("lookup", "cnn", "rnn", "sae")
+
             if model in ("cnn", "rnn"):
                 self.char_embed = getattr(self, model)(cti_size, dim)
             if model in ("lookup", "sae"):
@@ -27,13 +28,17 @@ class embed(nn.Module):
     def forward(self, xc, xw):
 
         hc, hw = None, None
+
         if self.char_embed:
             hc = self.char_embed(xc)
         if self.word_embed:
             hw = self.word_embed(xw)
+
         h = torch.cat([h for h in [hc, hw] if type(h) == torch.Tensor], 2)
+
         if self.hre:
             h = self.sent_embed(h)
+
         return h
 
     class lookup(nn.Module):
@@ -79,6 +84,7 @@ class embed(nn.Module):
             h = self.dropout(h)
             h = self.fc(h) # fully connected layer [Ls * B, H]
             h = h.view(-1, b, h.size(1)) # [Ls, B, H]
+
             return h
 
     class rnn(nn.Module):
@@ -108,10 +114,11 @@ class embed(nn.Module):
             n = self.num_layers * self.num_dirs
             h = self.dim // self.num_dirs
             hs = zeros(n, b, h) # hidden state
-            if self.rnn_type == "LSTM":
-                cs = zeros(n, b, h) # LSTM cell state
-                return (hs, cs)
-            return hs
+            if RNN_TYPE == "GRU":
+                return hs
+            cs = zeros(n, b, h) # LSTM cell state
+
+            return (hs, cs)
 
         def forward(self, x):
 
@@ -124,6 +131,7 @@ class embed(nn.Module):
             h = s if self.rnn_type == "GRU" else s[-1]
             h = torch.cat([x for x in h[-self.num_dirs:]], 1) # final hidden state
             h = h.view(-1, b, h.size(1)) # [Ls, B, H]
+
             return h
 
     class sae(nn.Module): # self-attentive encoder
@@ -169,8 +177,10 @@ class embed(nn.Module):
                 self.ffn = embed.sae.ffn(dim)
 
             def forward(self, x, mask):
+
                 z = self.attn(x, x, x, mask)
                 z = self.ffn(z)
+
                 return z
 
         class attn_mh(nn.Module): # multi-head attention
@@ -198,6 +208,7 @@ class embed(nn.Module):
                 a = a.masked_fill(mask, -10000)
                 a = F.softmax(a, 2)
                 a = torch.matmul(a, v)
+
                 return a # attention weights
 
             def forward(self, q, k, v, mask):
@@ -211,6 +222,7 @@ class embed(nn.Module):
                 z = z.transpose(1, 2).contiguous().view(b, -1, self.H * self.Dv)
                 z = self.Wo(z)
                 z = self.norm(x + self.dropout(z)) # residual connection and dropout
+
                 return z
 
         class ffn(nn.Module): # position-wise feed-forward networks
