@@ -1,18 +1,25 @@
 from utils import *
 
-class data():
+class dataset():
+
+    _vars = ("x0", "x1", "xc", "xw", "y0")
+
     def __init__(self):
+
         self.idx = None # input index
-        self.x0 = [[]] # string input, raw sentence
-        self.x1 = [[]] # string input, tokenized
-        self.xc = [[]] # indexed input, character-level
-        self.xw = [[]] # indexed input, word-level
-        self.y0 = [[]] # actual output
+        self.x0 = [] # text input, raw
+        self.x1 = [] # text input, tokenized
+        self.xc = [] # indexed input, character-level
+        self.xw = [] # indexed input, word-level
+        self.y0 = [] # actual output
         self.y1 = None # predicted output
-        self.prob = None # probability
-        self.attn = None # attention heatmap
+        self.lens = None # sequence lengths (for HRE)
+        self.prob = None # output probabilities
+        self.attn = None # attention weights
+        self.copy = None # copy weights
 
     def sort(self):
+
         self.idx = list(range(len(self.xw)))
         self.idx.sort(key = lambda x: -len(self.xw[x]))
         xc = [self.xc[i] for i in self.idx]
@@ -22,82 +29,88 @@ class data():
         return xc, xw, y0, lens
 
     def unsort(self):
+
         self.idx = sorted(range(len(self.x0)), key = lambda x: self.idx[x])
         self.y1 = [self.y1[i] for i in self.idx]
-        if self.prob: self.prob = [self.prob[i] for i in self.idx]
-        if self.attn: self.attn = [self.attn[i] for i in self.idx]
+        if self.prob:
+            self.prob = [self.prob[i] for i in self.idx]
+        if self.attn:
+            self.attn = [self.attn[i] for i in self.idx]
 
-class dataloader():
-    def __init__(self):
-        for a, b in data().__dict__.items():
-            setattr(self, a, b)
+class dataloader(dataset):
 
-    def append_item(self, x0 = None, x1 = None, xc = None, xw = None, y0 = None):
-        if x0: self.x0[-1].append(x0)
-        if x1: self.x1[-1].append(x1)
-        if xc: self.xc[-1].append(xc)
-        if xw: self.xw[-1].append(xw)
-        if y0: self.y0[-1].extend(y0)
+    def __init__(self, batch_first = False, hre = False):
+
+        super().__init__()
+        self.batch_first = batch_first
+        self.hre = hre # hierarchical recurrent encoding
 
     def append_row(self):
-        self.x0.append([])
-        self.x1.append([])
-        self.xc.append([])
-        self.xw.append([])
-        self.y0.append([])
 
-    def strip(self):
-        if len(self.xw[-1]):
-            return
-        self.x0.pop()
-        self.x1.pop()
-        self.xc.pop()
-        self.xw.pop()
-        self.y0.pop()
+        for x in self._vars:
+            getattr(self, x).append([])
 
-    @staticmethod
-    def flatten(ls):
-        if HRE:
-            return [list(x) for x in ls for x in x]
-        return [list(*x) for x in ls]
+    def append_item(self, **kwargs):
 
-    def split(self): # split into batches
-        for i in range(0, len(self.y0), BATCH_SIZE):
-            batch = data()
-            j = i + min(BATCH_SIZE, len(self.x0) - i)
-            batch.x0 = self.x0[i:j]
-            batch.x1 = self.x1[i:j] if HRE else self.flatten(self.x1[i:j])
-            batch.xc = self.xc[i:j] if HRE else self.flatten(self.xc[i:j])
-            batch.xw = self.xw[i:j] if HRE else self.flatten(self.xw[i:j])
-            batch.y0 = self.y0[i:j]
+        for k, v in kwargs.items():
+            getattr(self, k)[-1].append(v)
+
+    def flatten(self, x): # [Ld, Ls, Lw] -> [Ld * Ls, Lw]
+
+        if self.hre:
+            return [list(x) for x in x for x in x]
+
+        try:
+            return [x if type(x[0]) == str else list(*x) for x in x]
+        except:
+            return [x for x in x for x in x]
+
+    def split(self, batch_size): # split into batches
+
+        if self.hre:
+            self.y0 = [[tuple(y[0] for y in y)] for y in self.y0]
+
+        for i in range(0, len(self.y0), batch_size):
+            batch = dataset()
+            j = i + min(batch_size, len(self.x0) - i)
+            batch.lens = list(map(len, self.xw[i:j]))
+            for x in self._vars:
+                setattr(batch, x, self.flatten(getattr(self, x)[i:j]))
             yield batch
 
-    def tensor(self, bc, bw, lens = None, sos = False, eos = False):
-        _p, _s, _e = [PAD_IDX], [SOS_IDX], [EOS_IDX]
-        if HRE and lens:
-            d_len = max(lens) # document length (Ld)
+    def tensor(self, bc = None, bw = None, lens = None, sos = False, eos = False):
+
+        p, s, e = [PAD_IDX], [SOS_IDX], [EOS_IDX]
+
+        if self.hre and lens:
+            dl = max(lens) # document length (Ld)
             i, _bc, _bw = 0, [], []
             for j in lens:
-                if sos:
-                    _bc.append([[]])
-                    _bw.append([])
-                _bc += self.flatten(bc[i:i + j])
-                _bw += self.flatten(bw[i:i + j])
-                _bc += [[[]] for _ in range(d_len - j)]
-                _bw += [[] for _ in range(d_len - j)]
-                if eos:
-                    _bc.append([[]])
-                    _bw.append([])
+                if bc:
+                    if sos: _bc.append([[]])
+                    _bc += bc[i:i + j] + [[[]] for _ in range(dl - j)]
+                    if eos: _bc.append([[]])
+                if bw:
+                    if sos: _bw.append([])
+                    _bw += bw[i:i + j] + [[] for _ in range(dl - j)]
+                    if eos: _bw.append([])
                 i += j
             bc, bw = _bc, _bw # [B * Ld, ...]
+
         if bw:
-            s_len = max(map(len, bw)) # sentence length (Ls)
-            bw = [_s * sos + x + _e * eos + _p * (s_len - len(x)) for x in bw]
+            sl = max(map(len, bw)) # sentence length (Ls)
+            bw = [s * sos + x + e * eos + p * (sl - len(x)) for x in bw]
             bw = LongTensor(bw) # [B * Ld, Ls]
+            if not self.batch_first:
+                bw = bw.transpose(0, 1)
+
         if bc:
-            w_len = max(max(map(len, x)) for x in bc) # word length (Lw)
-            w_pad = [_p * (w_len + 2)]
-            bc = [[_s + w + _e + _p * (w_len - len(w)) for w in x] for x in bc]
-            bc = [w_pad * sos + x + w_pad * (s_len - len(x) + eos) for x in bc]
+            wl = max(max(map(len, x)) for x in bc) # word length (Lw)
+            wp = [p * (wl + 2)]
+            bc = [[s + x + e + p * (wl - len(x)) for x in x] for x in bc]
+            bc = [wp * sos + x + wp * (sl - len(x) + eos) for x in bc]
             bc = LongTensor(bc) # [B * Ld, Ls, Lw]
+            if not self.batch_first:
+                bc = bc.transpose(0, 1)
+
         return bc, bw
