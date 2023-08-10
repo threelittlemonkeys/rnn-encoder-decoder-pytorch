@@ -40,5 +40,4 @@ CUDA = torch.cuda.is_available()
 torch.manual_seed(0) # for reproducibility
 # torch.cuda.set_device(0)
 
-assert ATTN != COPY
 assert BATCH_SIZE % BEAM_SIZE == 0

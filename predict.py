@@ -1,5 +1,5 @@
-from model import *
 from utils import *
+from rnn_encoder_decoder import *
 from dataloader import *
 from beamsearch import *
 

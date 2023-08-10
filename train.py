@@ -1,6 +1,6 @@
-from model import *
 from utils import *
 from dataloader import *
+from rnn_encoder_decoder import *
 
 def load_data():
 
