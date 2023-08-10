@@ -5,8 +5,8 @@ A minimal PyTorch implementation of RNN Encoder-Decoder for sequence to sequence
 Supported features:
 - Mini-batch training with CUDA
 - Lookup, CNNs, RNNs and/or self-attentive encoding in the embedding layer
-- Attention mechanism (Bahdanau et al 2014, Luong et al 2015)
 - Input feeding (Luong et al 2015)
+- Attention mechanism (Bahdanau et al 2014, Luong et al 2015)
 - CopyNet, copying mechanism (Gu et al 2016)
 - Beam search decoding
 - Attention visualization
@@ -22,17 +22,17 @@ source_sequence \t target_sequence
 
 To prepare data:
 ```
-python prepare.py training_data
+python3 prepare.py training_data
 ```
 
 To train:
 ```
-python train.py model vocab.src vocab.tgt training_data.csv num_epoch
+python3 train.py model vocab.src vocab.tgt training_data.csv num_epoch
 ```
 
 To predict:
 ```
-python predict.py model.epochN vocab.src vocab.tgt test_data
+python3 predict.py model.epochN vocab.src vocab.tgt test_data
 ```
 
 ## References
