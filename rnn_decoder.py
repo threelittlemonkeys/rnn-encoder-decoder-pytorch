@@ -32,7 +32,7 @@ class rnn_decoder(nn.Module):
 
     def forward(self, xw, y1, mask):
 
-        x = self.embed(None, y1)
+        x = self.embed(None, None, y1)
 
         if ATTN:
             x = torch.cat((x, self.h), 2) # input feeding
