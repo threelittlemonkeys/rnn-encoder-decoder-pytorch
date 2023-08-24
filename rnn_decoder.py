@@ -1,5 +1,5 @@
 from utils import *
-from embedding import embed
+from embedding import *
 
 class rnn_decoder(nn.Module):
 

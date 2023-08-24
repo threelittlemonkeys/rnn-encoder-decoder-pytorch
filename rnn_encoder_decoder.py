@@ -16,7 +16,6 @@ class rnn_encoder_decoder(nn.Module):
     def init_state(self, b):
 
         self.dec.h = zeros(b, 1, HIDDEN_SIZE)
-
         self.dec.attn.W = zeros(b, 1, self.dec.M.size(1))
         self.dec.attn.V = zeros(b, 1, HIDDEN_SIZE)
 
@@ -25,13 +24,14 @@ class rnn_encoder_decoder(nn.Module):
 
     def forward(self, xc, xw, y0): # for training
 
-        self.zero_grad()
-        loss = Tensor(len(xw))
+        b = len(xw)
+        loss = Tensor(b)
         mask, lens = maskset(xw)
+        self.zero_grad()
 
         self.dec.M, self.dec.H = self.enc(xc, xw, lens)
-        self.init_state(len(xw))
-        yi = LongTensor([SOS_IDX] * len(xw))
+        self.init_state(b)
+        yi = LongTensor([SOS_IDX] * b)
 
         for t in range(y0.size(1)):
             yo = self.dec(xw, yi.unsqueeze(1), mask)

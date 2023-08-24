@@ -59,7 +59,6 @@ class dataloader(dataset):
 
         if self.hre:
             return [list(x) for x in x for x in x]
-
         try:
             return [x if type(x[0]) == str else list(*x) for x in x]
         except:
@@ -68,7 +67,8 @@ class dataloader(dataset):
     def split(self, batch_size): # split into batches
 
         if self.hre:
-            self.y0 = [[tuple(y[0] for y in y)] for y in self.y0]
+            self.x0 = [[x] for x in self.x0]
+            self.y0 = [[[y[0] if y else None for y in y]] for y in self.y0]
 
         for i in range(0, len(self.y0), batch_size):
             batch = dataset()
@@ -102,7 +102,8 @@ class dataloader(dataset):
             bw = [s * sos + x + e * eos + p * (sl - len(x)) for x in bw]
             bw = LongTensor(bw) # [B * Ld, Ls]
             if not self.batch_first:
-                bw = bw.transpose(0, 1)
+                bw.transpose_(0, 1)
+
 
         if bc:
             wl = max(max(map(len, x)) for x in bc) # word length (Lw)
@@ -111,6 +112,6 @@ class dataloader(dataset):
             bc = [wp * sos + x + wp * (sl - len(x) + eos) for x in bc]
             bc = LongTensor(bc) # [B * Ld, Ls, Lw]
             if not self.batch_first:
-                bc = bc.transpose(0, 1)
+                bc.transpose_(0, 1)
 
         return bc, bw

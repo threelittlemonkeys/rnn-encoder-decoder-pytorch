@@ -1,5 +1,5 @@
 from utils import *
-from embedding import embed
+from embedding import *
 
 class rnn_encoder(nn.Module):
 
@@ -32,9 +32,12 @@ class rnn_encoder(nn.Module):
 
     def forward(self, xc, xw, lens):
 
-        s = self.init_state(len(xw))
+        b = len(xw)
+        s = self.init_state(b)
+        lens = lens.cpu()
+
         x = self.embed(xc, xw)
-        x = nn.utils.rnn.pack_padded_sequence(x, lens.cpu(), batch_first = True)
+        x = nn.utils.rnn.pack_padded_sequence(x, lens, batch_first = True)
         h, s = self.rnn(x, s)
         h, _ = nn.utils.rnn.pad_packed_sequence(h, batch_first = True)
 
