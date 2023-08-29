@@ -8,12 +8,6 @@ def dict_to_tti(tti, vocab_size = 0):
         tti = tti[:vocab_size]
     return {w: i for i, w in enumerate(tokens + tti)}
 
-def save_idx(filename, idx):
-
-    fo = open(filename, "w")
-    fo.write("\n".join(map(str, idx)) + "\n")
-    fo.close()
-
 def save_data(filename, data):
 
     fo = open(filename, "w")
@@ -28,14 +22,8 @@ def save_tkn_to_idx(filename, tti):
         fo.write("%s\n" % tkn)
     fo.close()
 
-def load_data():
+def lineiter(fo):
 
-    data = []
-    x_cti = defaultdict(int)
-    x_wti = defaultdict(int)
-    y_wti = defaultdict(int)
-
-    fo = open(sys.argv[1])
     for line in fo:
         x, y = line.split("\t")
         x = tokenize(x, UNIT)
@@ -44,6 +32,17 @@ def load_data():
             continue
         if len(y) < MIN_LEN or len(y) > MAX_LEN:
             continue
+        yield x, y
+
+def load_data():
+
+    data = []
+    x_cti = defaultdict(int)
+    x_wti = defaultdict(int)
+    y_wti = defaultdict(int)
+
+    fo = open(sys.argv[1])
+    for x, y in lineiter(fo):
         for w in x:
             for c in w:
                 x_cti[c] += 1
@@ -56,31 +55,22 @@ def load_data():
     y_wti = dict_to_tti(y_wti, TGT_VOCAB_SIZE)
 
     fo.seek(0)
-    for i, line in enumerate(fo):
-        x, y = line.split("\t")
-        x = tokenize(x, UNIT)
-        y = tokenize(y, UNIT)
-        if len(x) < MIN_LEN or len(x) > MAX_LEN:
-            continue
-        if len(y) < MIN_LEN or len(y) > MAX_LEN:
-            continue
+    for x, y in lineiter(fo):
         x = ["+".join(str(x_cti[c]) for c in w) + ":%d" % x_wti.get(w, UNK_IDX) for w in x]
         y = [str(y_wti.get(w, UNK_IDX)) for w in y]
-        data.append((i, (x, y)))
+        data.append((x, y))
 
     fo.close()
-    data = sorted(data, key = lambda x: -len(x[1][0])) # sort by source sequence length
-    idx, data = zip(*data)
+    data = sorted(data, key = lambda x: -len(x[0])) # sort by source sequence length
 
-    return idx, data, x_cti, x_wti, y_wti
+    return data, x_cti, x_wti, y_wti
 
 if __name__ == "__main__":
 
     if len(sys.argv) != 2:
         sys.exit("Usage: %s training_data" % sys.argv[0])
 
-    idx, data, x_cti, x_wti, y_wti = load_data()
-    save_idx(sys.argv[1] + ".idx", idx)
+    data, x_cti, x_wti, y_wti = load_data()
     save_data(sys.argv[1] + ".csv", data)
     save_tkn_to_idx(sys.argv[1] + ".src.char_to_idx", x_cti)
     save_tkn_to_idx(sys.argv[1] + ".src.word_to_idx", x_wti)
