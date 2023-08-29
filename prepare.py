@@ -50,13 +50,12 @@ def load_data():
             x_wti[w] += 1
         for w in y:
             y_wti[w] += 1
-    fo.close()
 
     x_cti = dict_to_tti(x_cti)
     x_wti = dict_to_tti(x_wti, SRC_VOCAB_SIZE)
     y_wti = dict_to_tti(y_wti, TGT_VOCAB_SIZE)
 
-    fo = open(sys.argv[1])
+    fo.seek(0)
     for i, line in enumerate(fo):
         x, y = line.split("\t")
         x = tokenize(x, UNIT)
@@ -68,8 +67,8 @@ def load_data():
         x = ["+".join(str(x_cti[c]) for c in w) + ":%d" % x_wti.get(w, UNK_IDX) for w in x]
         y = [str(y_wti.get(w, UNK_IDX)) for w in y]
         data.append((i, (x, y)))
-    fo.close()
 
+    fo.close()
     data = sorted(data, key = lambda x: -len(x[1][0])) # sort by source sequence length
     idx, data = zip(*data)
 
