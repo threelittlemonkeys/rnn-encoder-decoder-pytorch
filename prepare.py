@@ -1,27 +1,5 @@
 from utils import *
 
-def dict_to_tti(tti, vocab_size = 0):
-
-    tokens = [PAD, SOS, EOS, UNK] # predefined tokens
-    tti = sorted(tti, key = lambda x: -tti[x])
-    if vocab_size:
-        tti = tti[:vocab_size]
-    return {w: i for i, w in enumerate(tokens + tti)}
-
-def save_data(filename, data):
-
-    fo = open(filename, "w")
-    for seq in data:
-        fo.write((" ".join(seq[0]) + "\t" + " ".join(seq[1]) if seq else "") + "\n")
-    fo.close()
-
-def save_tkn_to_idx(filename, tti):
-
-    fo = open(filename, "w")
-    for tkn, _ in sorted(tti.items(), key = lambda x: x[1]):
-        fo.write("%s\n" % tkn)
-    fo.close()
-
 def lineiter(fo):
 
     for line in fo:
@@ -33,6 +11,14 @@ def lineiter(fo):
         if len(y) < MIN_LEN or len(y) > MAX_LEN:
             continue
         yield x, y
+
+def dict_to_tti(tti, vocab_size = 0):
+
+    tokens = [PAD, SOS, EOS, UNK] # predefined tokens
+    tti = sorted(tti, key = lambda x: -tti[x])
+    if vocab_size:
+        tti = tti[:vocab_size]
+    return {w: i for i, w in enumerate(tokens + tti)}
 
 def load_data():
 
@@ -64,6 +50,20 @@ def load_data():
     data = sorted(data, key = lambda x: -len(x[0])) # sort by source sequence length
 
     return data, x_cti, x_wti, y_wti
+
+def save_data(filename, data):
+
+    fo = open(filename, "w")
+    for seq in data:
+        fo.write((" ".join(seq[0]) + "\t" + " ".join(seq[1]) if seq else "") + "\n")
+    fo.close()
+
+def save_tkn_to_idx(filename, tti):
+
+    fo = open(filename, "w")
+    for tkn, _ in sorted(tti.items(), key = lambda x: x[1]):
+        fo.write("%s\n" % tkn)
+    fo.close()
 
 if __name__ == "__main__":
 
