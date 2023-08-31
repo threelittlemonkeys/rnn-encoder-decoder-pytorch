@@ -16,7 +16,7 @@ def load_data():
     for line in fo:
         x, y = line.strip().split("\t")
         x = [x.split(":") for x in x.split(" ")]
-        y = [int(x) for x in y.split(" ")]
+        y = list(map(int, y.split(" ")))
         xc, xw = zip(*[(list(map(int, xc.split("+"))), int(xw)) for xc, xw in x])
         data.append_row()
         data.append_item(xc = xc, xw = xw, y0 = y)
