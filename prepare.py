@@ -55,7 +55,11 @@ def save_data(filename, data):
 
     fo = open(filename, "w")
     for seq in data:
-        fo.write((" ".join(seq[0]) + "\t" + " ".join(seq[1]) if seq else "") + "\n")
+        if not seq:
+            print(file = fo)
+            continue
+        print(*seq[0], end = "\t", file = fo)
+        print(*seq[1], file = fo)
     fo.close()
 
 def save_tkn_to_idx(filename, tti):
