@@ -27,7 +27,6 @@ class rnn_encoder(nn.Module):
         if RNN_TYPE == "GRU":
             return hs
         cs = zeros(n, b, h) # LSTM cell state
-
         return (hs, cs)
 
     def forward(self, xc, xw, lens):
