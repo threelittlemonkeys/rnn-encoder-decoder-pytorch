@@ -25,7 +25,7 @@ class rnn_encoder_decoder(nn.Module):
     def forward(self, xc, xw, y0): # for training
 
         b = len(xw) # batch size
-        loss = Tensor(b)
+        loss = zeros(b)
         mask, lens = maskset(xw)
         self.zero_grad()
 
