@@ -15,10 +15,10 @@ class rnn_encoder_decoder(nn.Module):
 
     def forward(self, xc, xw, y0): # for training
 
+        self.zero_grad()
         b = len(xw) # batch size
         loss = zeros(b)
         mask, lens = maskset(xw)
-        self.zero_grad()
 
         self.dec.M, self.dec.H = self.enc(xc, xw, lens)
         self.dec.h = zeros(b, 1, HIDDEN_SIZE)

@@ -8,7 +8,7 @@ class rnn_encoder(nn.Module):
         super().__init__()
 
         # architecture
-        self.embed = embed(ENC_EMBED, len(cti), len(wti))
+        self.embed = embed(ENC_EMBED, cti, wti, hre = HRE)
         self.rnn = getattr(nn, RNN_TYPE)(
             input_size = self.embed.dim,
             hidden_size = HIDDEN_SIZE // NUM_DIRS,
