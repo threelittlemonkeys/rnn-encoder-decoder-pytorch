@@ -27,18 +27,18 @@ def run_model(model, data, itw):
             xc, xw, _, lens = batch.sort()
             xc, xw = data.tensor(xc, xw, lens, eos = True)
             eos = [False for _ in xw] # EOS states
+            b, t = len(xw), 0
             mask, lens = maskset(xw)
 
             model.dec.M, model.dec.H = model.enc(xc, xw, lens)
-            model.dec.h = zeros(len(xw), 1, HIDDEN_SIZE)
-            yi = LongTensor([[SOS_IDX]] * len(xw))
+            model.dec.h = zeros(b, 1, HIDDEN_SIZE)
+            yi = LongTensor([[SOS_IDX]] * b)
 
             batch.y1 = [[] for _ in xw]
             batch.prob = [zeros(1) for _ in xw]
             batch.attn = [[["", *batch.x1[i], EOS]] for i in batch.idx]
             batch.copy = [[["", *batch.x1[i]]] for i in batch.idx]
 
-            t = 0
             while t < MAX_LEN and sum(eos) < len(eos):
                 yo = model.dec(xw, yi, mask)
                 args = (model.dec, batch, itw, eos, lens, yo)
