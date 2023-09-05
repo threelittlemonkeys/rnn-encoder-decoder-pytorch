@@ -17,7 +17,7 @@ def load_model():
 
     return model, x_cti, x_wti, y_itw
 
-def run_model(model, data, itw):
+def run_model(model, data, y_itw):
 
     with torch.no_grad():
         model.eval()
@@ -31,7 +31,7 @@ def run_model(model, data, itw):
             mask, lens = maskset(xw)
 
             model.dec.M, model.dec.H = model.enc(xc, xw, lens)
-            model.dec.h = zeros(b, 1, HIDDEN_SIZE)
+            model.init_state(b)
             yi = LongTensor([[SOS_IDX]] * b)
 
             batch.y1 = [[] for _ in xw]
@@ -41,9 +41,10 @@ def run_model(model, data, itw):
 
             while t < MAX_LEN and sum(eos) < len(eos):
                 yo = model.dec(xw, yi, mask)
-                args = (model.dec, batch, itw, eos, lens, yo)
+                args = (model.dec, batch, y_itw, eos, lens, yo)
                 yi = beam_search(*args, t) if BEAM_SIZE > 1 else greedy_search(*args)
                 t += 1
+
             batch.unsort()
 
             if VERBOSE:
@@ -57,7 +58,7 @@ def run_model(model, data, itw):
 
             for i, (x0, y0, y1) in enumerate(zip(batch.x0, batch.y0, batch.y1)):
                 if not i % BEAM_SIZE: # use the best candidate from each beam
-                    y1 = [itw[y] for y in y1[:-1]]
+                    y1 = [y_itw[y] for y in y1[:-1]]
                     yield x0, y0, y1
 
 def predict(filename, model, x_cti, x_wti, y_itw):
@@ -65,9 +66,9 @@ def predict(filename, model, x_cti, x_wti, y_itw):
     data = dataloader(batch_first = True)
     fo = open(filename)
 
-    for x0 in fo:
+    for line in fo:
 
-        x0, y0 = x0.strip(), []
+        x0, y0 = line.strip(), []
         if x0.count("\t") == 1:
             x0, y0 = x0.split("\t")
         x1 = tokenize(x0, UNIT)

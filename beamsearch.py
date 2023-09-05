@@ -58,7 +58,7 @@ def beam_search(dec, batch, itw, eos, lens, yo, t):
             eos[k] = (_y1[-1] == EOS_IDX)
 
             if VERBOSE >= 2:
-                print("output[{t}][{i}][{k - j}] = ", end = "")
+                print(f"output[{t}][{i}][{k - j}] = ", end = "")
                 print(([itw[y] for y in _y1], round(_prob.item(), 4)))
 
         if VERBOSE >= 2:
