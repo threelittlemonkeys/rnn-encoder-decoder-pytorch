@@ -22,14 +22,14 @@ def load_data():
         data.append_item(xc = xc, xw = xw, y0 = y)
     fo.close()
 
-    for _batch in data.split(BATCH_SIZE // BEAM_SIZE):
+    for _batch in data.split(BATCH_SIZE):
         xc, xw, y0, lens = _batch.sort()
         xc, xw = data.tensor(xc, xw, lens, eos = True)
         _, y0 = data.tensor(None, y0, eos = True)
         batch.append((xc, xw, y0))
 
     print("data size: %d" % len(data.y0))
-    print("batch size: %d" % (BATCH_SIZE // BEAM_SIZE))
+    print("batch size: %d" % (BATCH_SIZE))
 
     return batch, x_cti, x_wti, y_wti
 

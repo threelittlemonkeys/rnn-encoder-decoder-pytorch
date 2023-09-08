@@ -23,7 +23,7 @@ ATTN = True # attention mechanism
 COPY = False # copying mechanism
 
 BEAM_SIZE = 1
-BATCH_SIZE = 64 * BEAM_SIZE
+BATCH_SIZE = 64
 
 VERBOSE = 0 # 0: None, 1: attention heatmap, 2: beam search
 EVAL_EVERY = 10
@@ -41,4 +41,3 @@ torch.manual_seed(0) # for reproducibility
 # torch.cuda.set_device(0)
 
 assert ATTN != COPY
-assert BATCH_SIZE % BEAM_SIZE == 0

@@ -22,7 +22,7 @@ def run_model(model, data, y_itw):
     with torch.no_grad():
         model.eval()
 
-        for batch in data.split(BATCH_SIZE):
+        for batch in data.split(BATCH_SIZE * BEAM_SIZE):
 
             xc, xw, _, lens = batch.sort()
             xc, xw = data.tensor(xc, xw, lens, eos = True)
