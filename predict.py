@@ -73,8 +73,10 @@ def predict(model, x_cti, x_wti, y_itw, filename):
         if x0.count("\t") == 1:
             x0, y0 = x0.split("\t")
         x1 = tokenize(x0, UNIT)
+
         xc = [[x_cti.get(c, UNK_IDX) for c in w] for w in x1]
         xw = [x_wti.get(w, UNK_IDX) for w in x1]
+
         data.append_item(x0 = x0, x1 = x1, xc = xc, xw = xw, y0 = y0)
 
         for _ in range(BEAM_SIZE - 1):
