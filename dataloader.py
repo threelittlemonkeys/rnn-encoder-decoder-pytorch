@@ -18,7 +18,7 @@ class dataset():
         self.attn = None # attention weights
         self.copy = None # copy weights
 
-    def sort(self):
+    def sort(self): # HRE = False
 
         self.idx = list(range(len(self.xw)))
         self.idx.sort(key = lambda x: -len(self.xw[x]))
