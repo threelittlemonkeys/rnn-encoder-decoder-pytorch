@@ -11,7 +11,7 @@ class rnn_decoder(nn.Module):
         self.h = None # decoder output
 
         # architecture
-        self.embed = embed(DEC_EMBED, None, y_wti)
+        self.embed = embed(DEC_EMBED, None, y_wti, batch_first = True)
         self.rnn = getattr(nn, RNN_TYPE)(
             input_size = self.embed.dim + HIDDEN_SIZE * (1 + COPY),
             hidden_size = HIDDEN_SIZE // NUM_DIRS,
