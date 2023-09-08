@@ -32,17 +32,17 @@ def run_model(model, data, y_itw):
 
             model.dec.M, model.dec.H = model.enc(xc, xw, lens)
             model.init_state(b)
-            yi = LongTensor([[SOS_IDX]] * b)
+            yw = LongTensor([[SOS_IDX]] * b)
 
             batch.y1 = [[] for _ in xw]
-            batch.prob = [zeros(1) for _ in xw]
+            batch.prob = [0 for _ in xw]
             batch.attn = [[["", *batch.x1[i], EOS]] for i in batch.idx]
             batch.copy = [[["", *batch.x1[i]]] for i in batch.idx]
 
             while t < MAX_LEN and sum(eos) < len(eos):
-                yo = model.dec(xw, yi, mask)
+                yo = model.dec(xw, yw, mask)
                 args = (model.dec, batch, y_itw, eos, lens, yo)
-                yi = beam_search(*args, t) if BEAM_SIZE > 1 else greedy_search(*args)
+                yw = beam_search(*args, t) if BEAM_SIZE > 1 else greedy_search(*args)
                 t += 1
 
             batch.unsort()
@@ -61,7 +61,7 @@ def run_model(model, data, y_itw):
                     y1 = [y_itw[y] for y in y1[:-1]]
                     yield x0, y0, y1
 
-def predict(filename, model, x_cti, x_wti, y_itw):
+def predict(model, x_cti, x_wti, y_itw, filename):
 
     data = dataloader(batch_first = True)
     fo = open(filename)
@@ -88,5 +88,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 6:
         sys.exit("Usage: %s model vocab.src.char_to_idx vocab.src.word_to_idx vocab.tgt.word_to_idx test_data" % sys.argv[0])
 
-    for x, y0, y1 in predict(sys.argv[5], *load_model()):
-        print((x, y0, y1) if y0 else (x, y1))
+    for x, y0, y1 in predict(*load_model(), sys.argv[5]):
+        if y0:
+            print((x, y0))
+        print((x, y1))

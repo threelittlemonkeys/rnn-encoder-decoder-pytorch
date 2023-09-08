@@ -94,7 +94,7 @@ def mat2csv(m, ch = True, rh = True, delim = "\t"):
     for row in m[ch:]:
         csv.append([])
         if rh: # row header
-            csv[-1].append(row[0]) # target sequence
+            csv[-1].append(str(row[0])) # target sequence
         csv[-1] += [f"{x:.{NUM_DIGITS}f}" for x in row[rh:]]
 
     return "\n".join(delim.join(x) for x in csv)

@@ -23,22 +23,22 @@ def beam_search(dec, batch, itw, eos, lens, yo, t):
         bp += Tensor([-10000 if e else p for p, e in zip(batch.prob, eos)]).unsqueeze(1)
         bp, by = bp.view(-1, BEAM_SIZE ** 2), by.view(-1, BEAM_SIZE ** 2)
 
-    for i, (bp, by) in enumerate(zip(bp, by)): # for each sequence
+    for i, (bp, by) in enumerate(zip(bp, by.tolist())): # for each sequence
 
         j, _y1, _prob, _attn, _copy = i * BEAM_SIZE, [], [], [], []
 
         if VERBOSE >= 2:
             for k in range(0, len(bp), BEAM_SIZE): # for each previous beam
                 q = j + k // BEAM_SIZE
-                w = [(batch.prob[q], *(batch.y1[q][-1:] or [SOS_IDX]))] # previous token
-                w += list(zip(bp, by))[k:k + BEAM_SIZE] # current candidates
-                w = [(round(p.item(), NUM_DIGITS), itw[y]) for p, y in w]
-                print(f"beam[{t}][{i}][{k // BEAM_SIZE}] = {w[0]} ->", *w[1:])
+                a = [(batch.prob[q], *(batch.y1[q][-1:] or [SOS_IDX]))] # previous token
+                b = [(round(p.item(), NUM_DIGITS), y) # current candidates
+                    for p, y in list(zip(bp, by))[k:k + BEAM_SIZE]]
+                print(f"beam[{t}][{i}][{k // BEAM_SIZE}] = {a} ->", *b)
 
         for p, k in zip(*bp.topk(BEAM_SIZE)): # append n-best candidates
             q = j + k // BEAM_SIZE
             _y1.append(batch.y1[q] + [by[k]])
-            _prob.append(p)
+            _prob.append(p.item())
             _attn.append(batch.attn[q] + [[itw[by[k]], *dec.attn.W[q][0][:lens[j]]]])
             _copy.append(batch.copy[q] + [[itw[by[k]], *dec.copy.P[1][q][:lens[j] - 1]]] if COPY else [])
 
@@ -51,15 +51,15 @@ def beam_search(dec, batch, itw, eos, lens, yo, t):
         topk = sorted(zip(_y1, _prob, _attn, _copy), key = lambda x: -x[1])[:BEAM_SIZE]
 
         for k, (_y1, _prob, _attn, _copy) in enumerate(topk, j):
+            eos[k] = (_y1[-1] == EOS_IDX)
             batch.y1[k] = _y1
             batch.prob[k] = _prob
             batch.attn[k] = _attn
             batch.copy[k] = _copy
-            eos[k] = (_y1[-1] == EOS_IDX)
 
             if VERBOSE >= 2:
                 print(f"output[{t}][{i}][{k - j}] = ", end = "")
-                print(([itw[y] for y in _y1], round(_prob.item(), 4)))
+                print(([itw[y] for y in _y1], round(_prob, NUM_DIGITS)))
 
         if VERBOSE >= 2:
             print()
