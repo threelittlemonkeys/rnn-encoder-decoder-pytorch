@@ -55,6 +55,11 @@ class dataloader(dataset):
         for k, v in kwargs.items():
             getattr(self, k)[-1].append(v)
 
+    def clone_row(self):
+
+        for x in self._vars:
+            getattr(self, x).append(getattr(self, x)[-1])
+
     def flatten(self, x): # [Ld, Ls, Lw] -> [Ld * Ls, Lw]
 
         if self.hre:
