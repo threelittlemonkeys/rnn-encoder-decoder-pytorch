@@ -30,9 +30,9 @@ class rnn_decoder(nn.Module):
             self.Wo = nn.Linear(HIDDEN_SIZE, len(y_wti))
             self.copy = copy(x_wti, y_wti)
 
-    def forward(self, xw, y1, mask):
+    def forward(self, xw, yi, mask):
 
-        x = self.embed(None, None, y1)
+        x = self.embed(None, None, yi)
 
         if ATTN:
             x = torch.cat((x, self.h), 2) # input feeding
@@ -40,7 +40,7 @@ class rnn_decoder(nn.Module):
             self.attn(self.M, h, mask)
             self.h = self.Wc(torch.cat((self.attn.V, h), 2)).tanh()
             h = self.Wo(self.h).squeeze(1) # [B, V]
-            y = self.softmax(h)
+            yo = self.softmax(h)
 
         if COPY:
             _M = self.M[:, :-1] # remove EOS token [B, L' = L - 1]
@@ -50,9 +50,9 @@ class rnn_decoder(nn.Module):
             self.h, self.H = self.rnn(x, self.H)
             g = self.Wo(self.h).squeeze(1) # generation scores [B, V]
             c = self.copy.score(_M, self.h, mask) # copy scores [B, L']
-            y = self.copy.mix(xw, g, c) # [B, V']
+            yo = self.copy.mix(xw, g, c) # [B, V']
 
-        return y
+        return yo
 
 class attn(nn.Module): # attention mechanism (Luong et al 2015)
 
