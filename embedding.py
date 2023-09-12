@@ -40,8 +40,8 @@ class embed(nn.Module):
             if self.batch_first:
                 h.transpose_(0, 1)
             h = self.sent_embed(h) # [Lw, B * Ld, H] -> [1, B * Ld, H]
-            h = h.view(-1, b, h.size(2)) # [Ld, B, H]
-            if self.batch_first:
+            h = h.view(b, -1, h.size(2)) # [B, Ld, H]
+            if not self.batch_first:
                 h.transpose_(0, 1)
 
         return h
