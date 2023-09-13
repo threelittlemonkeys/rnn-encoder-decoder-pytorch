@@ -10,7 +10,7 @@ def load_data():
     x_wti = load_tkn_to_idx(sys.argv[3]) # source word_to_idx
     y_wti = load_tkn_to_idx(sys.argv[4]) # target word_to_idx
 
-    print("loading %s..." % sys.argv[5])
+    print(f"loading {sys.argv[5]}")
 
     fo = open(sys.argv[5])
     for line in fo:
@@ -45,7 +45,7 @@ def train():
     epoch = load_checkpoint(sys.argv[1], model) if isfile(sys.argv[1]) else 0
     filename = re.sub("\.epoch[0-9]+$", "", sys.argv[1])
 
-    print("training model...")
+    print("training model")
 
     for ei in range(epoch + 1, epoch + num_epochs + 1):
 
