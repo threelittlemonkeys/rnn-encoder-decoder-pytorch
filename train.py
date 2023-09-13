@@ -54,6 +54,7 @@ def train():
         timer = time()
 
         for xc, xw, y0 in batch:
+
             loss, seq_loss = model(xc, xw, y0) # forward pass and compute loss
             loss.backward() # compute gradients
             enc_optim.step() # update encoder parameters
