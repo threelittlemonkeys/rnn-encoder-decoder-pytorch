@@ -69,7 +69,7 @@ class dataloader(dataset):
         except:
             return [x for x in x for x in x]
 
-    def split(self, batch_size): # split into batches
+    def batchify(self, batch_size):
 
         if self.hre:
             self.x0 = [[x] for x in self.x0]
@@ -83,7 +83,7 @@ class dataloader(dataset):
                 setattr(batch, x, self.flatten(getattr(self, x)[i:j]))
             yield batch
 
-    def tensor(self, bc = None, bw = None, lens = None, sos = False, eos = False):
+    def to_tensor(self, bc = None, bw = None, lens = None, sos = False, eos = False):
 
         p, s, e = [PAD_IDX], [SOS_IDX], [EOS_IDX]
 

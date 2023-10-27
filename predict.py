@@ -22,10 +22,10 @@ def run_model(model, data, y_itw):
     with torch.no_grad():
         model.eval()
 
-        for batch in data.split(BATCH_SIZE * BEAM_SIZE):
+        for batch in data.batchify(BATCH_SIZE * BEAM_SIZE):
 
             xc, xw, _, lens = batch.sort()
-            xc, xw = data.tensor(xc, xw, lens, eos = True)
+            xc, xw = data.to_tensor(xc, xw, lens, eos = True)
             eos = [False for _ in xw] # EOS states
             b, t = len(xw), 0
             mask, lens = maskset(xw)
