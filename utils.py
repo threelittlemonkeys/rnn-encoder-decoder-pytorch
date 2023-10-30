@@ -98,7 +98,3 @@ def mat2csv(m, ch = True, rh = True, delim = "\t"):
         csv[-1] += [f"{x:.{NUM_DIGITS}f}" for x in row[rh:]]
 
     return "\n".join(delim.join(x) for x in csv)
-
-def f1(p, r):
-
-    return 2 * p * r / (p + r) if p + r else 0
