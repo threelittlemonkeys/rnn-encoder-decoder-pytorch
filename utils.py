@@ -82,7 +82,7 @@ def save_loss(filename, epoch, loss_array):
 def maskset(x):
 
     mask = x.eq(PAD_IDX)
-    lens = x.size(1) - mask.sum(1)
+    lens = x.size(1) - mask.sum(1) # x.ne(PAD_IDX).sum(1)
 
     return mask, lens
 
