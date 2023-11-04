@@ -35,10 +35,10 @@ class rnn_decoder(nn.Module):
         x = self.embed(None, None, yi)
 
         if ATTN:
-            x = torch.cat((x, self.h), 2) # input feeding
+            x = torch.cat([x, self.h], 2) # input feeding
             h, self.H = self.rnn(x, self.H)
             self.attn(self.M, h, mask)
-            self.h = self.Wc(torch.cat((self.attn.V, h), 2)).tanh()
+            self.h = self.Wc(torch.cat([self.attn.V, h], 2)).tanh()
             h = self.Wo(self.h).squeeze(1) # [B, V]
             yo = self.softmax(h)
 
@@ -46,7 +46,7 @@ class rnn_decoder(nn.Module):
             _M = self.M[:, :-1] # remove EOS token [B, L' = L - 1]
             self.attn(self.M, self.h, mask) # attentive read
             self.copy.attn(_M) # selective read
-            x = torch.cat((x, self.attn.V, self.copy.R), 2)
+            x = torch.cat([x, self.attn.V, self.copy.R], 2)
             self.h, self.H = self.rnn(x, self.H)
             g = self.Wo(self.h).squeeze(1) # generation scores [B, V]
             c = self.copy.score(_M, self.h, mask) # copy scores [B, L']
