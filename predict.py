@@ -30,14 +30,14 @@ def run_model(model, data, y_itw):
             b, t = len(xw), 0
             mask, lens = maskset(xw)
 
-            model.dec.M, model.dec.H = model.enc(xc, xw, lens)
-            model.init_state(b)
-            yw = LongTensor([[SOS_IDX]] * b)
-
             batch.y1 = [[] for _ in xw]
             batch.prob = [0 for _ in xw]
             batch.attn = [[["", *batch.x1[i], EOS]] for i in batch.idx]
             batch.copy = [[["", *batch.x1[i]]] for i in batch.idx]
+
+            model.dec.M, model.dec.H = model.enc(xc, xw, lens)
+            model.init_state(b)
+            yw = LongTensor([[SOS_IDX]] * b)
 
             while t < MAX_LEN and sum(eos) < len(eos):
                 yo = model.dec(xw, yw, mask)
