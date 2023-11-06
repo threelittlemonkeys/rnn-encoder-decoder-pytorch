@@ -37,12 +37,12 @@ def run_model(model, data, y_itw):
 
             model.dec.M, model.dec.H = model.enc(xc, xw, lens)
             model.init_state(b)
-            yw = LongTensor([[SOS_IDX]] * b)
+            yi = LongTensor([[SOS_IDX]] * b)
 
             while t < MAX_LEN and sum(eos) < len(eos):
-                yo = model.dec(xw, yw, mask)
+                yo = model.dec(xw, yi, mask)
                 args = (model.dec, batch, y_itw, eos, lens, yo)
-                yw = beam_search(*args, t) if BEAM_SIZE > 1 else greedy_search(*args)
+                yi = beam_search(*args, t) if BEAM_SIZE > 1 else greedy_search(*args)
                 t += 1
 
             batch.unsort()
