@@ -26,7 +26,6 @@ class rnn_encoder_decoder(nn.Module):
 
         self.zero_grad()
         b = len(xw) # batch size
-        loss = zeros(b)
         mask, lens = maskset(xw)
 
         self.dec.M, self.dec.H = self.enc(xc, xw, lens)
