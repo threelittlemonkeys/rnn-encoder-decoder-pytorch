@@ -32,12 +32,13 @@ class rnn_encoder_decoder(nn.Module):
         self.dec.M, self.dec.H = self.enc(xc, xw, lens)
         self.init_state(b)
         yi = LongTensor([SOS_IDX] * b)
+        yo = []
 
         for t in range(y0.size(1)):
-            yo = self.dec(xw, yi.unsqueeze(1), mask)
+            yo.append(self.dec(xw, yi.unsqueeze(1), mask))
             yi = y0[:, t] # teacher forcing
-            loss += F.nll_loss(yo, yi, ignore_index = PAD_IDX)
 
-        loss /= y0.size(1) # average over timesteps
+        yo = torch.stack(yo).transpose(0, 1).flatten(0, 1)
+        loss = F.nll_loss(yo, y0.view(-1), ignore_index = PAD_IDX)
 
-        return loss.mean(), loss
+        return loss

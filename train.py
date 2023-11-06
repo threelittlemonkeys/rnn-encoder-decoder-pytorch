@@ -50,17 +50,15 @@ def train():
     for ei in range(epoch + 1, epoch + num_epochs + 1):
 
         loss_sum = 0
-        loss_array = []
         timer = time()
 
         for xc, xw, y0 in batch:
 
-            loss, seq_loss = model(xc, xw, y0) # forward pass and compute loss
+            loss = model(xc, xw, y0) # forward pass and compute loss
             loss.backward() # compute gradients
             enc_optim.step() # update encoder parameters
             dec_optim.step() # update decoder parameters
             loss_sum += loss.item()
-            loss_array += seq_loss.tolist()
 
         timer = time() - timer
         loss_sum /= len(batch)
@@ -69,9 +67,6 @@ def train():
             save_checkpoint("", None, ei, loss_sum, timer)
         else:
             save_checkpoint(filename, model, ei, loss_sum, timer)
-
-        if SAVE_LOSS:
-            save_loss(filename, ei, loss_array)
 
 if __name__ == "__main__":
 
