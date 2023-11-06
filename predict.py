@@ -1,7 +1,7 @@
 from utils import *
 from dataloader import *
 from rnn_encoder_decoder import *
-from beamsearch import *
+from search import *
 
 def load_model():
 
