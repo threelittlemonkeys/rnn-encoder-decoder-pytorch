@@ -7,6 +7,7 @@ from parameters import *
 
 Tensor = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
 LongTensor = torch.cuda.LongTensor if CUDA else torch.LongTensor
+triu = lambda *x: torch.triu(*x).cuda() if CUDA else torch.triu
 zeros = lambda *x: torch.zeros(*x).cuda() if CUDA else torch.zeros
 
 def normalize(x):
